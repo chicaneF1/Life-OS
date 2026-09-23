@@ -1,0 +1,3428 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Life OS — Personal Execution Cockpit</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              obsidian: '#080c14',
+              surface: '#0f1626',
+              elevated: '#151f34',
+              card: '#121a2d',
+              border: '#1f2b45',
+              muted: '#71809b',
+              text: '#e2e8f0',
+              accent: '#3b82f6'
+            },
+            f: '#f59e0b', // Fun & Rejuvenation
+            i: '#8b5cf6', // Intellect & Mind
+            m: '#10b981', // Money & Wealth
+            p: '#06b6d4', // Physical & Psych
+            s: '#ec4899', // Social & Spiritual
+            l: '#14b8a6', // Life & Space
+            rec: '#10b981' // Recovery
+          },
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #080c14;
+      color: #e2e8f0;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #080c14;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    .cockpit-glow {
+      box-shadow: 0 0 30px -5px rgba(59, 130, 246, 0.07);
+    }
+    
+    .badge-f { background-color: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-i { background-color: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .badge-m { background-color: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-p { background-color: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); }
+    .badge-s { background-color: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+    .badge-l { background-color: rgba(20, 184, 166, 0.15); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.3); }
+
+    .btn-press:active {
+      transform: scale(0.97);
+    }
+
+    .modal-backdrop {
+      background: rgba(4, 7, 13, 0.85);
+      backdrop-filter: blur(8px);
+    }
+
+    /* Status glowing dots */
+    .status-dot-active {
+      box-shadow: 0 0 8px #10b981;
+    }
+    .status-dot-pending {
+      box-shadow: 0 0 8px #f59e0b;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#080c14] text-slate-100 selection:bg-blue-600 selection:text-white pb-24 md:pb-8">
+
+  <header class="sticky top-0 z-40 bg-[#0c1220]/95 backdrop-blur-md border-b border-[#1b253b] px-4 lg:px-8 py-3 transition-colors">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      
+      <!-- Brand & Philosophy Badge -->
+      <div class="flex items-center gap-3">
+        <button onclick="navigateView('command-center')" class="flex items-center gap-2.5 text-left group">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center font-mono font-bold text-white shadow-md shadow-blue-500/25 group-hover:scale-105 transition-transform">
+            ⚡
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold tracking-wider text-sm md:text-base text-white">LIFE OS</span>
+              <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">EXECUTION COCKPIT</span>
+            </div>
+            <p class="text-[11px] text-slate-400 hidden sm:block">Knowledge → Systems → Daily Actions → Measurement → Review</p>
+          </div>
+        </button>
+      </div>
+
+      <!-- Center Status / Life Score Cockpit Gauge -->
+      <div class="hidden md:flex items-center gap-6 px-4 py-1.5 rounded-full bg-[#111828] border border-[#1e2a42]">
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400">Life Velocity:</span>
+          <span id="nav-life-score" class="font-mono font-semibold text-emerald-400 text-sm">84%</span>
+          <div class="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div id="nav-life-score-bar" class="h-full bg-emerald-400 rounded-full transition-all duration-500" style="width: 84%"></div>
+          </div>
+        </div>
+        <div class="h-3 w-[1px] bg-slate-700"></div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400">Daily ONE Thing:</span>
+          <span id="nav-daily-focus-chip" class="text-xs text-blue-300 font-medium truncate max-w-[190px]">Morning 5K run & ship prototype</span>
+        </div>
+      </div>
+
+      <!-- Action Cluster -->
+      <div class="flex items-center gap-2">
+        <!-- SOP Handbook Trigger -->
+        <button onclick="navigateView('sop')" title="Standard Operating Procedure (SOP)" class="btn-press flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 transition-all">
+          <i class="fa-solid fa-book-bookmark text-emerald-400"></i>
+          <span class="hidden sm:inline">Operating SOP</span>
+        </button>
+
+        <!-- AI Advisor & Forecast Button -->
+        <button onclick="openAIModal()" title="AI Execution Analysis & Forecast" class="btn-press flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 transition-all">
+          <i class="fa-solid fa-brain text-indigo-400"></i>
+          <span class="hidden sm:inline">AI Audit</span>
+        </button>
+
+        <!-- Quick Add FAB Trigger -->
+        <button onclick="openQuickAddModal('task')" class="btn-press flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/25 transition-all">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span>Add</span>
+        </button>
+
+        <!-- Reminder Bell -->
+        <button onclick="toggleRemindersPanel()" class="relative p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors" title="Notifications & Reminders">
+          <i class="fa-regular fa-bell text-base"></i>
+          <span id="reminder-badge" class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#0c1220]"></span>
+        </button>
+
+        <!-- Settings & Data sync -->
+        <button onclick="openSettingsModal()" class="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors" title="Settings, WhatsApp & Backup">
+          <i class="fa-solid fa-sliders text-base"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <nav class="bg-[#0e1424] border-b border-[#1b253b] sticky top-[57px] z-30 overflow-x-auto no-scrollbar">
+    <div class="max-w-7xl mx-auto px-4 lg:px-8 flex items-center gap-1.5 py-1.5 text-xs">
+      <button onclick="navigateView('command-center')" id="tab-command-center" class="nav-tab px-3 py-2 rounded-lg font-medium text-blue-400 bg-blue-500/10 border border-blue-500/20 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-gauge-high"></i> Command Center
+      </button>
+      <button onclick="navigateView('daily-plan')" id="tab-daily-plan" class="nav-tab px-3 py-2 rounded-lg font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-calendar-day"></i> Daily Sheet
+      </button>
+      <button onclick="navigateView('goals-systems')" id="tab-goals-systems" class="nav-tab px-3 py-2 rounded-lg font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-bullseye"></i> Goals & Systems
+      </button>
+      <button onclick="navigateView('habits')" id="tab-habits" class="nav-tab px-3 py-2 rounded-lg font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-repeat"></i> Habits & Routines
+      </button>
+      <button onclick="navigateView('recovery')" id="tab-recovery" class="nav-tab px-3 py-2 rounded-lg font-medium text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/20 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-heart-pulse text-emerald-400"></i> Recovery & Regimen
+      </button>
+      <button onclick="navigateView('weekly-review')" id="tab-weekly-review" class="nav-tab px-3 py-2 rounded-lg font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-clipboard-check"></i> Weekly Review
+      </button>
+      <button onclick="navigateView('metrics')" id="tab-metrics" class="nav-tab px-3 py-2 rounded-lg font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-chart-line"></i> Metrics & Trends
+      </button>
+      <button onclick="navigateView('dashboard')" id="tab-dashboard" class="nav-tab px-3 py-2 rounded-lg font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-chart-pie"></i> Insights & Balance
+      </button>
+      <button onclick="navigateView('sop')" id="tab-sop" class="nav-tab px-3 py-2 rounded-lg font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-book-bookmark"></i> SOP Manual
+      </button>
+    </div>
+  </nav>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6">
+
+    <!-- ========================================================= -->
+    <!-- VIEW 1: COMMAND CENTER (HOME COCKPIT)                     -->
+    <!-- ========================================================= -->
+    <div id="view-command-center" class="view-panel space-y-8">
+      
+      <!-- TOP COCKPIT HEADER: Answers 5 Key Questions Immediately -->
+      <section class="p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45] relative overflow-hidden cockpit-glow">
+        <div class="absolute -right-16 -top-16 w-56 h-56 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2.5 text-xs text-slate-400 font-mono">
+              <span id="cc-current-date">Wednesday, 23 Sep 2026</span>
+              <span>•</span>
+              <span id="cc-time-greeting" class="text-blue-400 font-sans font-medium">Good Evening, Commander</span>
+            </div>
+            <h1 class="text-xl md:text-2xl font-bold text-white tracking-tight mt-1 flex items-center gap-2">
+              Life Command Center
+              <span class="text-xs font-normal px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Operational</span>
+            </h1>
+            <p id="cc-reflective-quote" class="text-xs md:text-sm text-slate-400 mt-1.5 italic max-w-2xl">
+              "We do not rise to the level of our goals. We fall to the level of our systems."
+            </p>
+          </div>
+
+          <!-- Quick Stat Capsules -->
+          <div class="grid grid-cols-3 gap-2.5 sm:gap-4 shrink-0 font-mono text-center">
+            <div class="p-3 rounded-xl bg-[#080c14] border border-[#1c263c]">
+              <div class="text-[10px] text-slate-400 uppercase tracking-wider">Today's Exec</div>
+              <div id="cc-stat-today-pct" class="text-lg font-bold text-blue-400 mt-0.5">70%</div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#080c14] border border-[#1c263c]">
+              <div class="text-[10px] text-slate-400 uppercase tracking-wider">Active Goals</div>
+              <div id="cc-stat-active-goals" class="text-lg font-bold text-emerald-400 mt-0.5">4</div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#080c14] border border-[#1c263c]">
+              <div class="text-[10px] text-slate-400 uppercase tracking-wider">Recovery</div>
+              <div id="cc-stat-recovery-score" class="text-lg font-bold text-teal-400 mt-0.5">85%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5 Immediate Answers Micro-Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-2.5 mt-6 pt-5 border-t border-[#1a253c] text-[11px]">
+          <div class="p-2.5 rounded-lg bg-[#0b101c] border border-[#172136]">
+            <span class="text-slate-400 block font-mono text-[10px]">1. PRIME AIM</span>
+            <span id="cc-ans-aim" class="text-slate-200 font-medium truncate block mt-0.5">Run 10K & Build Corpus</span>
+          </div>
+          <div class="p-2.5 rounded-lg bg-[#0b101c] border border-[#172136]">
+            <span class="text-slate-400 block font-mono text-[10px]">2. TODAY'S DO</span>
+            <span id="cc-ans-today" class="text-slate-200 font-medium truncate block mt-0.5">2 pending actions</span>
+          </div>
+          <div class="p-2.5 rounded-lg bg-[#0b101c] border border-[#172136]">
+            <span class="text-slate-400 block font-mono text-[10px]">3. VELOCITY</span>
+            <span id="cc-ans-progress" class="text-emerald-400 font-medium truncate block mt-0.5">On pace (+14% wk)</span>
+          </div>
+          <div class="p-2.5 rounded-lg bg-[#0b101c] border border-[#172136]">
+            <span class="text-slate-400 block font-mono text-[10px]">4. ATTENTION</span>
+            <span id="cc-ans-attention" class="text-amber-400 font-medium truncate block mt-0.5">Reading habit lagging</span>
+          </div>
+          <div class="col-span-2 md:col-span-1 p-2.5 rounded-lg bg-[#0b101c] border border-[#172136]">
+            <span class="text-slate-400 block font-mono text-[10px]">5. REFLECT</span>
+            <span id="cc-ans-reflect" class="text-indigo-300 font-medium truncate block mt-0.5">Evening check-in ready</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- SECTION 1 — TODAY (Checklist with status filter & clear done indicators) -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <h2 class="text-base font-bold text-white tracking-wide">TODAY'S ACTIONS</h2>
+              <span id="today-counter-chip" class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">3/5 Done</span>
+            </div>
+
+            <!-- Done status filter & Quick add -->
+            <div class="flex items-center gap-2">
+              <div class="flex items-center bg-[#080c14] border border-[#1c263c] rounded-lg p-0.5 text-[11px] font-mono">
+                <button onclick="setTaskFilter('all')" id="btn-filter-all" class="px-2 py-0.5 rounded bg-blue-600 text-white font-medium">All</button>
+                <button onclick="setTaskFilter('pending')" id="btn-filter-pending" class="px-2 py-0.5 rounded text-slate-400 hover:text-white">Pending</button>
+                <button onclick="setTaskFilter('completed')" id="btn-filter-completed" class="px-2 py-0.5 rounded text-slate-400 hover:text-white">Done</button>
+              </div>
+              <button onclick="openQuickAddModal('task')" class="text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1">
+                <i class="fa-solid fa-plus text-[10px]"></i> Action
+              </button>
+            </div>
+          </div>
+
+          <!-- Checklist items container -->
+          <div id="today-actions-list" class="space-y-2.5">
+            <!-- Dynamically populated with Done status & resource indicators -->
+          </div>
+
+          <!-- SECTION 2 — TODAY'S PROGRESS INDICATORS -->
+          <div class="p-4 rounded-xl bg-[#0f1626] border border-[#1f2b45] space-y-3">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-medium text-slate-300">Today's Execution Progress:</span>
+              <span id="today-progress-bar-label" class="font-mono font-bold text-blue-400">70%</span>
+            </div>
+            <!-- Progress Bar -->
+            <div class="w-full h-2.5 bg-[#080c14] rounded-full overflow-hidden p-0.5 border border-[#1b253b]">
+              <div id="today-progress-fill" class="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 rounded-full transition-all duration-300" style="width: 70%"></div>
+            </div>
+            <!-- Mini stats row -->
+            <div class="grid grid-cols-3 gap-2 pt-2 text-center text-xs text-slate-400 border-t border-[#1a253c]">
+              <div>
+                <span class="text-[11px] block">Actions Done</span>
+                <span id="stat-tasks-done" class="text-slate-200 font-mono font-semibold">3 / 5</span>
+              </div>
+              <div>
+                <span class="text-[11px] block">Habits Honored</span>
+                <span id="stat-habits-done" class="text-slate-200 font-mono font-semibold">4 / 5</span>
+              </div>
+              <div>
+                <span class="text-[11px] block">Recovery Score</span>
+                <span id="stat-recovery-metric" class="text-teal-400 font-mono font-semibold">85% Optimal</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 3 — LIFE BALANCE (F / I / M / P / S / L) -->
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-white tracking-wide">LIFE BALANCE</h2>
+            <button onclick="navigateView('dashboard')" class="text-xs text-slate-400 hover:text-slate-200 font-mono">Radar View &rarr;</button>
+          </div>
+
+          <div class="p-5 rounded-xl bg-[#0f1626] border border-[#1f2b45] space-y-3.5">
+            <div class="text-[11px] text-slate-400 leading-relaxed">
+              Calculated live from active systems, completed habits, and weekly target adherence.
+            </div>
+
+            <!-- F -->
+            <div class="space-y-1">
+              <div class="flex justify-between items-center text-xs">
+                <span class="flex items-center gap-1.5 font-medium text-amber-400">
+                  <span class="w-2 h-2 rounded-full bg-amber-400"></span> F — Fun & Rejuvenation
+                </span>
+                <span id="score-f-val" class="font-mono text-slate-300">65%</span>
+              </div>
+              <div class="h-2 bg-[#080c14] rounded-full overflow-hidden">
+                <div id="score-f-bar" class="h-full bg-amber-400 rounded-full transition-all duration-500" style="width: 65%"></div>
+              </div>
+            </div>
+
+            <!-- I -->
+            <div class="space-y-1">
+              <div class="flex justify-between items-center text-xs">
+                <span class="flex items-center gap-1.5 font-medium text-purple-400">
+                  <span class="w-2 h-2 rounded-full bg-purple-400"></span> I — Intellect & Mind
+                </span>
+                <span id="score-i-val" class="font-mono text-slate-300">75%</span>
+              </div>
+              <div class="h-2 bg-[#080c14] rounded-full overflow-hidden">
+                <div id="score-i-bar" class="h-full bg-purple-400 rounded-full transition-all duration-500" style="width: 75%"></div>
+              </div>
+            </div>
+
+            <!-- M -->
+            <div class="space-y-1">
+              <div class="flex justify-between items-center text-xs">
+                <span class="flex items-center gap-1.5 font-medium text-emerald-400">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400"></span> M — Money & Wealth
+                </span>
+                <span id="score-m-val" class="font-mono text-slate-300">80%</span>
+              </div>
+              <div class="h-2 bg-[#080c14] rounded-full overflow-hidden">
+                <div id="score-m-bar" class="h-full bg-emerald-400 rounded-full transition-all duration-500" style="width: 80%"></div>
+              </div>
+            </div>
+
+            <!-- P -->
+            <div class="space-y-1">
+              <div class="flex justify-between items-center text-xs">
+                <span class="flex items-center gap-1.5 font-medium text-cyan-400">
+                  <span class="w-2 h-2 rounded-full bg-cyan-400"></span> P — Physical & Psych
+                </span>
+                <span id="score-p-val" class="font-mono text-slate-300">85%</span>
+              </div>
+              <div class="h-2 bg-[#080c14] rounded-full overflow-hidden">
+                <div id="score-p-bar" class="h-full bg-cyan-400 rounded-full transition-all duration-500" style="width: 85%"></div>
+              </div>
+            </div>
+
+            <!-- S -->
+            <div class="space-y-1">
+              <div class="flex justify-between items-center text-xs">
+                <span class="flex items-center gap-1.5 font-medium text-pink-400">
+                  <span class="w-2 h-2 rounded-full bg-pink-400"></span> S — Social & Spiritual
+                </span>
+                <span id="score-s-val" class="font-mono text-slate-300">70%</span>
+              </div>
+              <div class="h-2 bg-[#080c14] rounded-full overflow-hidden">
+                <div id="score-s-bar" class="h-full bg-pink-400 rounded-full transition-all duration-500" style="width: 70%"></div>
+              </div>
+            </div>
+
+            <!-- L -->
+            <div class="space-y-1">
+              <div class="flex justify-between items-center text-xs">
+                <span class="flex items-center gap-1.5 font-medium text-teal-400">
+                  <span class="w-2 h-2 rounded-full bg-teal-400"></span> L — Life & Space
+                </span>
+                <span id="score-l-val" class="font-mono text-slate-300">60%</span>
+              </div>
+              <div class="h-2 bg-[#080c14] rounded-full overflow-hidden">
+                <div id="score-l-bar" class="h-full bg-teal-400 rounded-full transition-all duration-500" style="width: 60%"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- SECTION 4 — ACTIVE GOALS -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <h2 class="text-base font-bold text-white tracking-wide">ACTIVE GOALS</h2>
+              <span class="text-xs text-slate-400 font-mono">(With Dated Notes & Resources)</span>
+            </div>
+            <button onclick="navigateView('goals-systems')" class="text-xs text-blue-400 hover:text-blue-300 font-mono">Manage All &rarr;</button>
+          </div>
+
+          <div id="home-active-goals-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Populated dynamically with Notes and Resource count -->
+          </div>
+        </div>
+
+        <!-- SECTION 5 — ATTENTION REQUIRED (System Triage) -->
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-amber-400 tracking-wide flex items-center gap-1.5">
+              <i class="fa-solid fa-triangle-exclamation text-xs"></i> ATTENTION REQUIRED
+            </h2>
+            <span id="attention-count" class="text-xs font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">2 Alerts</span>
+          </div>
+
+          <div id="attention-items-container" class="space-y-3">
+            <!-- Populated dynamically (Overdue actions, failing habit systems, review prompts) -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SECTION 6 — DAILY CHECK-IN -->
+      <section class="p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1a253c] pb-4">
+          <div>
+            <h2 class="text-base font-bold text-white tracking-wide flex items-center gap-2">
+              <span>🌙</span> DAILY CHECK-IN & EVENING CALIBRATION
+            </h2>
+            <p class="text-xs text-slate-400">Keep it under 2 minutes. Close the loop before you sleep.</p>
+          </div>
+          <span id="checkin-status-badge" class="text-xs font-mono px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 self-start sm:self-auto">
+            ⚠️ Pending Evening Log
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Mood -->
+          <div class="space-y-2">
+            <label class="text-xs font-medium text-slate-300 block">Mood (1 to 5):</label>
+            <div class="flex items-center gap-2" id="checkin-mood-selector">
+              <button onclick="setCheckinScore('mood', 1)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-blue-500 transition-colors">1 😞</button>
+              <button onclick="setCheckinScore('mood', 2)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-blue-500 transition-colors">2 😐</button>
+              <button onclick="setCheckinScore('mood', 3)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-blue-500 transition-colors">3 🙂</button>
+              <button onclick="setCheckinScore('mood', 4)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-blue-500 transition-colors">4 😄</button>
+              <button onclick="setCheckinScore('mood', 5)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-blue-500 transition-colors">5 🔥</button>
+            </div>
+          </div>
+
+          <!-- Energy -->
+          <div class="space-y-2">
+            <label class="text-xs font-medium text-slate-300 block">Energy (1 to 5):</label>
+            <div class="flex items-center gap-2" id="checkin-energy-selector">
+              <button onclick="setCheckinScore('energy', 1)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-emerald-500 transition-colors">1 🪫</button>
+              <button onclick="setCheckinScore('energy', 2)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-emerald-500 transition-colors">2 🔋</button>
+              <button onclick="setCheckinScore('energy', 3)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-emerald-500 transition-colors">3 ⚡</button>
+              <button onclick="setCheckinScore('energy', 4)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-emerald-500 transition-colors">4 ⚡⚡</button>
+              <button onclick="setCheckinScore('energy', 5)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-emerald-500 transition-colors">5 🚀</button>
+            </div>
+          </div>
+
+          <!-- Focus -->
+          <div class="space-y-2">
+            <label class="text-xs font-medium text-slate-300 block">Focus (1 to 5):</label>
+            <div class="flex items-center gap-2" id="checkin-focus-selector">
+              <button onclick="setCheckinScore('focus', 1)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-purple-500 transition-colors">1 🌀</button>
+              <button onclick="setCheckinScore('focus', 2)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-purple-500 transition-colors">2 👓</button>
+              <button onclick="setCheckinScore('focus', 3)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-purple-500 transition-colors">3 🎯</button>
+              <button onclick="setCheckinScore('focus', 4)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-purple-500 transition-colors">4 🏹</button>
+              <button onclick="setCheckinScore('focus', 5)" class="score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-purple-500 transition-colors">5 🧘</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 Reflection Prompts -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-slate-300">What went well today?</label>
+            <input type="text" id="checkin-went-well" placeholder="e.g. Executed morning run & finished prototype" class="w-full text-xs px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500">
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-slate-300">What didn't go well?</label>
+            <input type="text" id="checkin-didnt-well" placeholder="e.g. Distracted after lunch by slack" class="w-full text-xs px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500">
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-slate-300">One thing to improve tomorrow?</label>
+            <input type="text" id="checkin-tomorrow-fix" placeholder="e.g. Block 9am to 11am for deep coding" class="w-full text-xs px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500">
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button onclick="saveDailyCheckin()" class="btn-press text-xs font-medium px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-500/20">
+            Save Today's Check-in
+          </button>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 2: DAILY OPERATING SHEET                             -->
+    <!-- ========================================================= -->
+    <div id="view-daily-plan" class="view-panel hidden space-y-6">
+      
+      <!-- Top Header & The ONE Thing Banner -->
+      <div class="p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h1 class="text-xl font-bold text-white">Daily Operating Sheet</h1>
+            <p class="text-xs text-slate-400">Minimal morning setup, continuous execution, and evening closeout.</p>
+          </div>
+          <div class="text-xs font-mono text-slate-400" id="daily-sheet-date">Today</div>
+        </div>
+
+        <!-- THE ONE THING -->
+        <div class="p-4 rounded-xl bg-gradient-to-r from-blue-950/30 via-indigo-950/30 to-[#080c14] border border-blue-500/30 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-crown text-amber-400"></i> The ONE Thing
+            </span>
+            <span id="daily-one-status-badge" class="text-[11px] font-mono text-slate-400">Make this day a guaranteed win</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <input type="checkbox" id="daily-one-priority-check" onchange="toggleDailyPriorityComplete()" class="w-5 h-5 rounded border-slate-700 text-blue-600 focus:ring-0 bg-[#080c14] cursor-pointer">
+            <input type="text" id="daily-one-priority-input" placeholder="What is the ONE action that makes today successful?" class="flex-1 text-sm font-medium bg-transparent border-b border-transparent hover:border-slate-700 focus:border-blue-500 focus:outline-none text-white py-1">
+            <button onclick="saveDailyPriority()" class="text-xs px-3 py-1 rounded bg-blue-600/30 text-blue-300 border border-blue-500/30 hover:bg-blue-600/50">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Time Blocks Checklist: Morning, Afternoon, Evening -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Morning -->
+        <div class="p-5 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-4">
+          <div class="flex items-center justify-between border-b border-[#1a253c] pb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-amber-400 text-base">🌅</span>
+              <h2 class="text-sm font-bold text-white">Morning Routine</h2>
+            </div>
+            <button onclick="openQuickAddModal('task', 'Morning')" class="text-[11px] text-blue-400 hover:text-blue-300 font-mono">+ Add</button>
+          </div>
+          <div id="daily-morning-list" class="space-y-2 text-xs">
+            <!-- Morning tasks -->
+          </div>
+        </div>
+
+        <!-- Afternoon -->
+        <div class="p-5 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-4">
+          <div class="flex items-center justify-between border-b border-[#1a253c] pb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-blue-400 text-base">☀️</span>
+              <h2 class="text-sm font-bold text-white">Afternoon Execution</h2>
+            </div>
+            <button onclick="openQuickAddModal('task', 'Afternoon')" class="text-[11px] text-blue-400 hover:text-blue-300 font-mono">+ Add</button>
+          </div>
+          <div id="daily-afternoon-list" class="space-y-2 text-xs">
+            <!-- Afternoon tasks -->
+          </div>
+        </div>
+
+        <!-- Evening -->
+        <div class="p-5 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-4">
+          <div class="flex items-center justify-between border-b border-[#1a253c] pb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-indigo-400 text-base">🌙</span>
+              <h2 class="text-sm font-bold text-white">Evening Calibration</h2>
+            </div>
+            <button onclick="openQuickAddModal('task', 'Evening')" class="text-[11px] text-blue-400 hover:text-blue-300 font-mono">+ Add</button>
+          </div>
+          <div id="daily-evening-list" class="space-y-2 text-xs">
+            <!-- Evening tasks -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- End of Day Comprehensive Calibration Card -->
+      <div class="p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-4">
+        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-blue-400"></i> Daily Metric Sliders & Reflections
+        </h2>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+          <div class="space-y-1">
+            <label class="text-slate-400">Sleep (hours):</label>
+            <input type="number" id="daily-sleep-hours" step="0.5" value="7.5" class="w-full px-3 py-1.5 rounded-lg bg-[#080c14] border border-[#1e2a42] text-slate-100 font-mono text-xs">
+          </div>
+          <div class="space-y-1">
+            <label class="text-slate-400">Exercise (min):</label>
+            <input type="number" id="daily-exercise-min" step="5" value="45" class="w-full px-3 py-1.5 rounded-lg bg-[#080c14] border border-[#1e2a42] text-slate-100 font-mono text-xs">
+          </div>
+          <div class="space-y-1">
+            <label class="text-slate-400">Learning / Reading (min):</label>
+            <input type="number" id="daily-learning-min" step="5" value="30" class="w-full px-3 py-1.5 rounded-lg bg-[#080c14] border border-[#1e2a42] text-slate-100 font-mono text-xs">
+          </div>
+          <div class="space-y-1">
+            <label class="text-slate-400">Social Connection:</label>
+            <select id="daily-social-quality" class="w-full px-3 py-1.5 rounded-lg bg-[#080c14] border border-[#1e2a42] text-slate-100 text-xs">
+              <option value="Meaningful">Meaningful</option>
+              <option value="Casual">Casual</option>
+              <option value="Isolated">Isolated</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button onclick="saveDailyCalibrationSheet()" class="btn-press text-xs font-semibold px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20">
+            Log Daily Calibration
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 3: GOALS & SYSTEMS (WITH DATED NOTES & WHATSAPP)     -->
+    <!-- ========================================================= -->
+    <div id="view-goals-systems" class="view-panel hidden space-y-6">
+      
+      <!-- Header with working button actions -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45]">
+        <div>
+          <h1 class="text-xl font-bold text-white flex items-center gap-2">
+            Goals & Supporting Systems
+          </h1>
+          <p class="text-xs text-slate-400 mt-1">
+            Goals determine direction. Systems determine execution. Convert broad ambitions into actionable machinery.
+          </p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button onclick="openGoalModal()" class="btn-press text-xs font-semibold px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5">
+            <i class="fa-solid fa-plus"></i> New Goal
+          </button>
+          <button onclick="openSystemModal()" class="btn-press text-xs font-medium px-3 py-2 rounded-lg bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-600/30 flex items-center gap-1.5">
+            <i class="fa-solid fa-gears"></i> New System
+          </button>
+        </div>
+      </div>
+
+      <!-- Life Area Filter Pills + Subcategories -->
+      <div class="flex items-center justify-between flex-wrap gap-2 text-xs">
+        <div class="flex items-center gap-1.5 flex-wrap" id="goal-filter-pills">
+          <button onclick="filterGoalsArea('ALL')" class="goal-filter-btn px-3 py-1 rounded-md bg-blue-600 text-white font-medium">All Areas</button>
+          <button onclick="filterGoalsArea('F')" class="goal-filter-btn px-3 py-1 rounded-md bg-[#111828] text-slate-400 hover:text-amber-400 border border-[#1e2a42]">F — Fun</button>
+          <button onclick="filterGoalsArea('I')" class="goal-filter-btn px-3 py-1 rounded-md bg-[#111828] text-slate-400 hover:text-purple-400 border border-[#1e2a42]">I — Intellect</button>
+          <button onclick="filterGoalsArea('M')" class="goal-filter-btn px-3 py-1 rounded-md bg-[#111828] text-slate-400 hover:text-emerald-400 border border-[#1e2a42]">M — Money</button>
+          <button onclick="filterGoalsArea('P')" class="goal-filter-btn px-3 py-1 rounded-md bg-[#111828] text-slate-400 hover:text-cyan-400 border border-[#1e2a42]">P — Physical</button>
+          <button onclick="filterGoalsArea('S')" class="goal-filter-btn px-3 py-1 rounded-md bg-[#111828] text-slate-400 hover:text-pink-400 border border-[#1e2a42]">S — Social</button>
+        </div>
+
+        <div class="text-[11px] text-slate-400 flex items-center gap-2">
+          <span>Subcategories supported: Gym, Running, Investing, Reading, etc.</span>
+        </div>
+      </div>
+
+      <!-- Main Goals & Systems Cards Container -->
+      <div id="goals-list-container" class="space-y-6">
+        <!-- Rendered dynamically with linked systems, dated notes timeline, and resources -->
+      </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 4: HABITS & ROUTINES (CONSISTENCY ENGINE)            -->
+    <!-- ========================================================= -->
+    <div id="view-habits" class="view-panel hidden space-y-6">
+      
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45]">
+        <div>
+          <h1 class="text-xl font-bold text-white">Habits & Recurring Routines</h1>
+          <p class="text-xs text-slate-400 mt-1">
+            "Consistency over time beats occasional intensity." Track habit consistency over the last 14 days.
+          </p>
+        </div>
+        <button onclick="openQuickAddModal('habit')" class="btn-press text-xs font-semibold px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 self-start md:self-auto">
+          <i class="fa-solid fa-plus"></i> New Habit / Routine
+        </button>
+      </div>
+
+      <!-- Habits Frequency Tabs -->
+      <div class="flex items-center gap-2 border-b border-[#1a253c] pb-2 text-xs">
+        <button onclick="switchHabitFreqTab('all')" id="habit-tab-all" class="px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-300 font-medium border border-blue-500/30">All</button>
+        <button onclick="switchHabitFreqTab('daily')" id="habit-tab-daily" class="px-3 py-1.5 rounded-lg bg-[#0e1424] text-slate-400 font-medium hover:text-slate-200">Daily</button>
+        <button onclick="switchHabitFreqTab('weekly')" id="habit-tab-weekly" class="px-3 py-1.5 rounded-lg bg-[#0e1424] text-slate-400 font-medium hover:text-slate-200">Weekly</button>
+        <button onclick="switchHabitFreqTab('monthly')" id="habit-tab-monthly" class="px-3 py-1.5 rounded-lg bg-[#0e1424] text-slate-400 font-medium hover:text-slate-200">Monthly</button>
+      </div>
+
+      <!-- Habits List with 7-Day Consistency Matrix & Today's Done indicator -->
+      <div id="habits-matrix-container" class="space-y-3">
+        <!-- Rendered dynamically -->
+      </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 5: RECOVERY & REGIMEN (MENTAL & PHYSICAL)           -->
+    <!-- ========================================================= -->
+    <div id="view-recovery" class="view-panel hidden space-y-6">
+      
+      <!-- Recovery Hero Card -->
+      <div class="p-6 rounded-2xl bg-gradient-to-br from-[#0f1626] to-[#0c1a24] border border-emerald-500/30 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2 text-xs text-emerald-400 font-mono">
+              <i class="fa-solid fa-heart-pulse"></i> PHYSIOLOGICAL REGENERATION
+            </div>
+            <h1 class="text-xl md:text-2xl font-bold text-white mt-1">Recovery & Health Regimen</h1>
+            <p class="text-xs text-slate-300 max-w-xl mt-1">
+              High execution requires high recovery. Track protein, hydration, sleep architecture, and mental decompression.
+            </p>
+          </div>
+          <!-- Live Daily Recovery Score -->
+          <div class="p-4 rounded-xl bg-[#080c14] border border-emerald-500/40 text-center shrink-0">
+            <span class="text-[10px] text-slate-400 uppercase font-mono block">Daily Recovery Score</span>
+            <span id="recovery-live-score" class="text-2xl font-bold font-mono text-emerald-400">88%</span>
+            <span class="text-[10px] text-emerald-400/80 font-mono block">Optimal Readiness</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Physical & Mental Recovery Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- 1. Protein & Nutrition Fuel -->
+        <div class="p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-4">
+          <div class="flex items-center justify-between border-b border-[#1a253c] pb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-base text-amber-400">🥩</span>
+              <h2 class="text-sm font-bold text-white">Daily Protein & Fuel Engine</h2>
+            </div>
+            <span id="protein-target-badge" class="text-xs font-mono text-emerald-400">Target: 140g</span>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex justify-between items-center text-xs font-mono">
+              <span class="text-slate-300">Logged Today:</span>
+              <span id="protein-current-val" class="font-bold text-lg text-emerald-400">105g / 140g</span>
+            </div>
+            <div class="h-3 bg-[#080c14] rounded-full overflow-hidden p-0.5 border border-[#1b253b]">
+              <div id="protein-progress-fill" class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-300" style="width: 75%"></div>
+            </div>
+          </div>
+
+          <!-- Quick Log Protein Buttons -->
+          <div class="grid grid-cols-4 gap-2 pt-2 text-xs font-mono">
+            <button onclick="addProtein(25)" class="btn-press py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-emerald-500 text-slate-200">+25g (Scoop)</button>
+            <button onclick="addProtein(30)" class="btn-press py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-emerald-500 text-slate-200">+30g (Meal)</button>
+            <button onclick="addProtein(15)" class="btn-press py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] hover:border-emerald-500 text-slate-200">+15g (Snack)</button>
+            <button onclick="resetProtein()" class="btn-press py-2 rounded-lg bg-rose-950/20 border border-rose-500/30 text-rose-300 hover:bg-rose-950/40">Reset</button>
+          </div>
+
+          <!-- Hydration Tracker -->
+          <div class="pt-3 border-t border-[#1a253c] space-y-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-300 flex items-center gap-1.5">💧 Water Hydration:</span>
+              <span id="water-current-val" class="font-mono text-cyan-400 font-bold">2.5L / 3.5L</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="addWater(0.5)" class="flex-1 py-1.5 rounded-lg bg-cyan-950/30 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-900/40 text-xs font-mono">+500 ml Glass</button>
+              <button onclick="resetWater()" class="px-3 py-1.5 rounded-lg bg-[#080c14] text-slate-400 border border-[#1e2a42] text-xs font-mono">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Sleep Architecture & Decompression -->
+        <div class="p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-4">
+          <div class="flex items-center justify-between border-b border-[#1a253c] pb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-base text-indigo-400">🌙</span>
+              <h2 class="text-sm font-bold text-white">Sleep & Nervous System Reset</h2>
+            </div>
+            <span class="text-xs font-mono text-indigo-300">Target: 7.5 - 8.0h</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div class="p-3 rounded-xl bg-[#080c14] border border-[#1e2a42] space-y-1">
+              <span class="text-slate-400 block">Last Night's Sleep:</span>
+              <div class="flex items-center gap-2">
+                <input type="number" id="rec-sleep-hours" value="7.5" step="0.5" onchange="updateRecoveryScores()" class="w-16 px-2 py-1 bg-[#111828] border border-slate-700 rounded font-mono text-white text-xs">
+                <span class="text-slate-400">hours</span>
+              </div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#080c14] border border-[#1e2a42] space-y-1">
+              <span class="text-slate-400 block">Sleep Quality:</span>
+              <select id="rec-sleep-quality" onchange="updateRecoveryScores()" class="w-full px-2 py-1.5 bg-[#111828] border border-slate-700 rounded text-slate-200 text-xs">
+                <option value="Deep">Deep & Restorative (100%)</option>
+                <option value="Fair" selected>Fair / Average (75%)</option>
+                <option value="Disturbed">Disturbed / Restless (40%)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Physical & Mental Recovery Checklist -->
+          <div class="space-y-2 pt-2">
+            <span class="text-xs font-semibold text-slate-300 block">Active Recovery Checklist:</span>
+            <div id="recovery-checklist-container" class="space-y-1.5 text-xs">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 6: WEEKLY REVIEW & SYSTEM ADJUSTMENT                 -->
+    <!-- ========================================================= -->
+    <div id="view-weekly-review" class="view-panel hidden space-y-6">
+      
+      <div class="p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h1 class="text-xl font-bold text-white">Weekly Review & Calibration</h1>
+            <p class="text-xs text-slate-400">KNOWLEDGE → EXECUTION → REVIEW → ADJUST SYSTEMS.</p>
+          </div>
+          <span class="text-xs font-mono px-3 py-1 rounded bg-[#080c14] text-blue-400 border border-[#1f2b45]">
+            Week 39, 2026
+          </span>
+        </div>
+      </div>
+
+      <!-- Automated Weekly Summary Dashboard -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="p-4 rounded-xl bg-[#0f1626] border border-[#1f2b45]">
+          <span class="text-[11px] text-slate-400 uppercase font-mono">Tasks Completed</span>
+          <div id="wr-stat-tasks" class="text-xl font-bold text-white mt-1">26 / 30</div>
+          <span class="text-[10px] text-emerald-400 font-mono">87% execution rate</span>
+        </div>
+        <div class="p-4 rounded-xl bg-[#0f1626] border border-[#1f2b45]">
+          <span class="text-[11px] text-slate-400 uppercase font-mono">Habit Consistency</span>
+          <div id="wr-stat-habits" class="text-xl font-bold text-blue-400 mt-1">82%</div>
+          <span class="text-[10px] text-slate-400 font-mono">+4% from last week</span>
+        </div>
+        <div class="p-4 rounded-xl bg-[#0f1626] border border-[#1f2b45]">
+          <span class="text-[11px] text-slate-400 uppercase font-mono">Avg Mood / Energy</span>
+          <div id="wr-stat-mood-energy" class="text-xl font-bold text-purple-400 mt-1">4.1 / 3.9</div>
+          <span class="text-[10px] text-purple-300 font-mono">Optimal velocity</span>
+        </div>
+        <div class="p-4 rounded-xl bg-[#0f1626] border border-[#1f2b45]">
+          <span class="text-[11px] text-slate-400 uppercase font-mono">Priorities Honored</span>
+          <div id="wr-stat-priorities" class="text-xl font-bold text-emerald-400 mt-1">5 / 7 Days</div>
+          <span class="text-[10px] text-emerald-400 font-mono">High leverage focus</span>
+        </div>
+      </div>
+
+      <!-- The 7 Essential Review Questions Form -->
+      <div class="p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-6">
+        <h2 class="text-base font-bold text-white border-b border-[#1a253c] pb-3">
+          The 7 Calibration Inquiries
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
+          <div class="space-y-1.5">
+            <label class="font-semibold text-slate-200">1. What worked exceptionally well this week?</label>
+            <textarea id="wr-q1" rows="2" placeholder="e.g. Waking at 6am consistently; batching coding tasks..." class="w-full p-2.5 rounded-lg bg-[#080c14] border border-[#1e2a42] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"></textarea>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="font-semibold text-slate-200">2. What failed or had high friction?</label>
+            <textarea id="wr-q2" rows="2" placeholder="e.g. Night reading was replaced with phone browsing..." class="w-full p-2.5 rounded-lg bg-[#080c14] border border-[#1e2a42] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"></textarea>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="font-semibold text-slate-200">3. What did I learn about my systems / energy?</label>
+            <textarea id="wr-q3" rows="2" placeholder="e.g. Workouts after 8pm disrupt my sleep latency..." class="w-full p-2.5 rounded-lg bg-[#080c14] border border-[#1e2a42] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"></textarea>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="font-semibold text-slate-200">4. What should I STOP doing?</label>
+            <textarea id="wr-q4" rows="2" placeholder="e.g. Stop checking portfolio prices multiple times daily..." class="w-full p-2.5 rounded-lg bg-[#080c14] border border-[#1e2a42] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"></textarea>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="font-semibold text-slate-200">5. What should I START doing?</label>
+            <textarea id="wr-q5" rows="2" placeholder="e.g. Leave book directly on the pillow in the morning..." class="w-full p-2.5 rounded-lg bg-[#080c14] border border-[#1e2a42] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"></textarea>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="font-semibold text-slate-200">6. What should I CONTINUE doing?</label>
+            <textarea id="wr-q6" rows="2" placeholder="e.g. Sunday meal prep and workout split..." class="w-full p-2.5 rounded-lg bg-[#080c14] border border-[#1e2a42] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"></textarea>
+          </div>
+        </div>
+
+        <!-- Question 7: Next Week's Prime Focus -->
+        <div class="space-y-2 pt-2 border-t border-[#1a253c]">
+          <label class="font-bold text-sm text-blue-400">7. What is the single most important focus next week?</label>
+          <input type="text" id="wr-q7" placeholder="e.g. Complete 35km running milestone & deploy Life OS update" class="w-full p-3 rounded-lg bg-[#080c14] border border-blue-500/30 text-white text-xs font-medium focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <button onclick="generateWeeklyAIPrompt()" class="text-xs text-indigo-400 hover:text-indigo-300 font-mono flex items-center gap-1.5">
+            <i class="fa-solid fa-robot"></i> Feed this review into AI Analyst
+          </button>
+          <button onclick="saveWeeklyReview()" class="btn-press text-xs font-semibold px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-500/20">
+            Submit Weekly Review & Commit Priorities
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 7: METRICS & MEASUREMENTS                            -->
+    <!-- ========================================================= -->
+    <div id="view-metrics" class="view-panel hidden space-y-6">
+      
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45]">
+        <div>
+          <h1 class="text-xl font-bold text-white">Custom Metrics & Logs</h1>
+          <p class="text-xs text-slate-400 mt-1">
+            "What gets measured gets managed." Track quantified signals across health, wealth, and mind.
+          </p>
+        </div>
+        <button onclick="openMetricModal()" class="btn-press text-xs font-semibold px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 self-start md:self-auto">
+          <i class="fa-solid fa-plus"></i> New Metric Definition
+        </button>
+      </div>
+
+      <!-- Metrics Cards Grid -->
+      <div id="metrics-cards-grid" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <!-- Rendered dynamically -->
+      </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 8: DASHBOARD & MULTI-CHART INSIGHTS                 -->
+    <!-- ========================================================= -->
+    <div id="view-dashboard" class="view-panel hidden space-y-6">
+      
+      <!-- Top Filters -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45]">
+        <div>
+          <h1 class="text-xl font-bold text-white">Execution Dashboard & Multi-Chart Insights</h1>
+          <p class="text-xs text-slate-400 mt-1">Comprehensive breakdown of habits, mood velocity, and life dimension balances.</p>
+        </div>
+        
+        <!-- Time Filter Selector -->
+        <div class="flex items-center gap-1 bg-[#080c14] p-1 rounded-lg border border-[#1f2b45] text-xs">
+          <button onclick="setDashboardTimeFilter('today')" id="dash-time-today" class="px-2.5 py-1 rounded text-slate-400 hover:text-white">Today</button>
+          <button onclick="setDashboardTimeFilter('week')" id="dash-time-week" class="px-2.5 py-1 rounded bg-blue-600 text-white font-medium">This Week</button>
+          <button onclick="setDashboardTimeFilter('month')" id="dash-time-month" class="px-2.5 py-1 rounded text-slate-400 hover:text-white">This Month</button>
+          <button onclick="setDashboardTimeFilter('quarter')" id="dash-time-quarter" class="px-2.5 py-1 rounded text-slate-400 hover:text-white">Quarter</button>
+        </div>
+      </div>
+
+      <!-- Multi-Chart Matrix Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Chart 1: Life Dimension Balance Breakdown -->
+        <div class="p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-4">
+          <h2 class="text-sm font-bold text-white flex items-center justify-between">
+            <span>Life Dimension Distribution (Radar Breakdown)</span>
+            <span class="text-xs font-mono text-slate-400">Target: Harmonious</span>
+          </h2>
+          <div class="space-y-3 pt-2" id="dash-dimensions-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Chart 2: Mood, Energy, Focus Synergy Curve -->
+        <div class="p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-sm font-bold text-white">Energy & Mood Calibration Curve</h2>
+            <p class="text-xs text-slate-400 mt-1">Daily trend over the past 7 active sessions.</p>
+            <div class="h-44 mt-4 flex items-end justify-between gap-2 px-2 pt-6 border-b border-[#1a253c]" id="dash-mood-chart">
+              <!-- Rendered dynamic bars -->
+            </div>
+          </div>
+          <div class="flex items-center justify-center gap-6 text-xs text-slate-400 pt-2 font-mono">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-blue-400"></span> Focus</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-emerald-400"></span> Energy</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-purple-400"></span> Mood</span>
+          </div>
+        </div>
+
+        <!-- Chart 3: Weekly Execution Velocity -->
+        <div class="p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-4">
+          <h2 class="text-sm font-bold text-white flex items-center justify-between">
+            <span>Task Execution Velocity (Past 7 Days)</span>
+            <span class="text-xs font-mono text-emerald-400">Avg: 85%</span>
+          </h2>
+          <div class="space-y-2 pt-2">
+            <div class="h-32 flex items-end gap-3 justify-between px-2 pb-2 border-b border-[#1a253c]" id="dash-velocity-chart">
+              <!-- Rendered bars -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart 4: Habit Consistency Heatmap Matrix -->
+        <div class="p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-4">
+          <h2 class="text-sm font-bold text-white flex items-center justify-between">
+            <span>Habit Consistency Heatmap</span>
+            <span class="text-xs font-mono text-blue-400">14-Day View</span>
+          </h2>
+          <div class="space-y-2.5 pt-2" id="dash-habits-heatmap">
+            <!-- Heatmap blocks rendered dynamically -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 9: SOP (STANDARD OPERATING PROCEDURE) MANUAL        -->
+    <!-- ========================================================= -->
+    <div id="view-sop" class="view-panel hidden space-y-6">
+      
+      <div class="p-6 rounded-2xl bg-[#0f1626] border border-emerald-500/30 space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-lg">
+            📖
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-white">Standard Operating Procedure (SOP)</h1>
+            <p class="text-xs text-slate-300">How to operate Life OS as your personal execution cockpit with zero friction.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3-Phase Daily Operating Protocol -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Step 1: Morning -->
+        <div class="p-5 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-3">
+          <div class="flex items-center gap-2 text-amber-400 font-bold text-sm">
+            <span>🌅</span> Phase 1: Morning Priming (06:00 - 08:00)
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Never open social media first. Open Life OS Command Center.
+          </p>
+          <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside">
+            <li><strong>Lock The ONE Thing:</strong> Write down the single action that guarantees today's win.</li>
+            <li><strong>Inspect Daily Blocks:</strong> Review Morning, Afternoon, and Evening actions.</li>
+            <li><strong>Hydrate & Sunlight:</strong> Knock out your first physical recovery routine immediately.</li>
+          </ul>
+        </div>
+
+        <!-- Step 2: Afternoon -->
+        <div class="p-5 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-3">
+          <div class="flex items-center gap-2 text-blue-400 font-bold text-sm">
+            <span>☀️</span> Phase 2: Execution & Deep Work (09:00 - 18:00)
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Execute actions by time block. Avoid multitasking.
+          </p>
+          <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside">
+            <li><strong>Check off as you do:</strong> Mark actions done. The visual timestamp confirms it's finished.</li>
+            <li><strong>Log Protein & Water:</strong> Tap +25g protein scoops or +500ml water in the Recovery tab.</li>
+            <li><strong>Access Vault:</strong> Tap 🔗 Resources on any Goal/Action to view linked YouTube videos or notes.</li>
+          </ul>
+        </div>
+
+        <!-- Step 3: Evening -->
+        <div class="p-5 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-3">
+          <div class="flex items-center gap-2 text-indigo-400 font-bold text-sm">
+            <span>🌙</span> Phase 3: Evening Calibration (21:00 - 22:00)
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Close the psychological loop before sleeping (under 2 minutes).
+          </p>
+          <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside">
+            <li><strong>Daily Check-in:</strong> Rate Mood, Energy, and Focus (1 to 5). Note today's win & friction.</li>
+            <li><strong>Log Goal Notes:</strong> Add a 1-line dated note on active goals if you made progress today.</li>
+            <li><strong>Prepare Tomorrow:</strong> Leave workout clothes or reading material ready by your bedside.</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- The Weekly Reset Protocol & Philosophy -->
+      <div class="p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-4">
+        <h2 class="text-base font-bold text-white flex items-center gap-2">
+          <span>🔄</span> The Sunday Calibration & Accountability Protocol
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs text-slate-300 leading-relaxed">
+          <div class="p-4 rounded-xl bg-[#080c14] border border-[#1e2a42] space-y-2">
+            <h3 class="font-bold text-emerald-400 text-sm">1. System Triage Rule</h3>
+            <p>
+              If a system drops below <strong>50% completion</strong>, do not beat yourself up. Modify the system! Reduce frequency (e.g. 5x/wk to 3x/wk) or lower friction. We fall to the level of our systems.
+            </p>
+          </div>
+          <div class="p-4 rounded-xl bg-[#080c14] border border-[#1e2a42] space-y-2">
+            <h3 class="font-bold text-blue-400 text-sm">2. WhatsApp Accountability Loop</h3>
+            <p>
+              Every goal card has an <strong>Accountability Partner</strong> button. On Sunday, click it to automatically draft a WhatsApp message with your current target, percentage, and pledge for the week.
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- MODAL: KNOWLEDGE & RESOURCES VAULT (YOUTUBE / INSTA / URL) -->
+  <!-- ========================================================= -->
+  <div id="modal-resources" class="fixed inset-0 z-50 modal-backdrop hidden flex items-center justify-center p-4">
+    <div class="bg-[#0f1626] border border-[#1f2b45] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+      <div class="p-4 border-b border-[#1a253c] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-lg text-blue-400">🔗</span>
+          <div>
+            <h3 class="font-bold text-white text-sm" id="resource-modal-title">Knowledge & Resources Vault</h3>
+            <p class="text-[10px] text-slate-400" id="resource-modal-subtitle">Associated videos, articles, and documentation</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-resources')" class="text-slate-400 hover:text-white p-1 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+        
+        <!-- Add New Resource Form -->
+        <form id="form-add-resource" onsubmit="handleCreateResource(event)" class="p-3.5 rounded-xl bg-[#080c14] border border-[#1e2a42] space-y-3">
+          <span class="font-semibold text-slate-200 block text-xs">Attach New Link / Knowledge Item</span>
+          <div class="space-y-1">
+            <label class="text-[11px] text-slate-400">Title / Label:</label>
+            <input type="text" id="res-input-title" required placeholder="e.g. Zone 2 Running Masterclass or Instagram Mobility Reel" class="w-full px-3 py-1.5 rounded-lg bg-[#111828] border border-slate-700 text-white text-xs">
+          </div>
+          <div class="space-y-1">
+            <label class="text-[11px] text-slate-400">URL (YouTube / Instagram / Article):</label>
+            <input type="url" id="res-input-url" required placeholder="https://www.youtube.com/watch?v=... or https://instagram.com/..." class="w-full px-3 py-1.5 rounded-lg bg-[#111828] border border-slate-700 text-white font-mono text-xs">
+          </div>
+          <div class="flex justify-end pt-1">
+            <button type="submit" class="btn-press px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs">
+              + Save Resource
+            </button>
+          </div>
+        </form>
+
+        <!-- Current Resources List -->
+        <div class="space-y-2">
+          <span class="font-semibold text-slate-300 block text-xs">Attached Resources:</span>
+          <div id="resource-items-list" class="space-y-2">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL: DATED GOAL NOTES & DAILY LOG TIMELINE             -->
+  <!-- ========================================================= -->
+  <div id="modal-goal-notes" class="fixed inset-0 z-50 modal-backdrop hidden flex items-center justify-center p-4">
+    <div class="bg-[#0f1626] border border-[#1f2b45] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+      <div class="p-4 border-b border-[#1a253c] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-lg text-emerald-400">📝</span>
+          <div>
+            <h3 class="font-bold text-white text-sm" id="goal-notes-modal-title">Dated Progress Log</h3>
+            <p class="text-[10px] text-slate-400">Track day-by-day notes, events, and milestones</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-goal-notes')" class="text-slate-400 hover:text-white p-1 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+        
+        <!-- Add dated note form -->
+        <form id="form-add-goal-note" onsubmit="handleCreateGoalNote(event)" class="p-3.5 rounded-xl bg-[#080c14] border border-[#1e2a42] space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-semibold text-slate-200 text-xs">Log Note for Specific Date:</span>
+            <input type="date" id="goal-note-date" required class="px-2 py-1 rounded bg-[#111828] border border-slate-700 text-slate-200 text-xs font-mono">
+          </div>
+          <div class="space-y-1">
+            <textarea id="goal-note-text" required rows="2" placeholder="e.g. Ran 7km at 5:10/km pace. Legs felt light, hydration helped." class="w-full px-3 py-2 rounded-lg bg-[#111828] border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-blue-500"></textarea>
+          </div>
+          <div class="flex justify-end pt-1">
+            <button type="submit" class="btn-press px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs">
+              + Add Dated Log
+            </button>
+          </div>
+        </form>
+
+        <!-- Chronological Timeline -->
+        <div class="space-y-2">
+          <span class="font-semibold text-slate-300 block text-xs">History of Entries:</span>
+          <div id="goal-notes-timeline" class="space-y-2.5 border-l-2 border-[#1e2a42] pl-3 ml-1.5">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL: AI EXECUTION ANALYST & FORECASTER                  -->
+  <!-- ========================================================= -->
+  <div id="modal-ai" class="fixed inset-0 z-50 modal-backdrop hidden flex items-center justify-center p-4">
+    <div class="bg-[#0f1626] border border-[#222d44] w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="p-5 border-b border-[#1a253c] flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-brain"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-sm">AI Execution Analyst & Forecaster</h3>
+            <p class="text-[11px] text-slate-400">Grounded analysis of execution, friction points & 30-day forecast</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-ai')" class="text-slate-400 hover:text-white p-1 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+        
+        <div class="p-3.5 rounded-xl bg-[#080c14] border border-[#1e2a42] space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-slate-300">Live Cockpit Snapshot Context</span>
+            <span class="text-[10px] font-mono text-emerald-400">Ready to synthesize</span>
+          </div>
+          <p class="text-slate-400 text-[11px] leading-relaxed">
+            The AI receives your current active goals, system health, dated notes, habit consistency, and daily check-in ratings to perform an execution diagnostic.
+          </p>
+        </div>
+
+        <!-- AI Output Box -->
+        <div id="ai-response-box" class="p-4 rounded-xl bg-[#080c14] border border-indigo-500/20 text-slate-200 text-xs leading-relaxed space-y-2 min-h-[140px] whitespace-pre-wrap font-sans">
+          Click "Run AI Execution Audit" to invoke Gemini 3 Flash, or use "Copy Prompt with Live Data" to paste into ChatGPT, Claude, or any LLM.
+        </div>
+
+        <!-- Action Row -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+          <button onclick="copyAIDataPrompt()" class="btn-press w-full sm:w-auto px-3.5 py-2 rounded-lg bg-[#182236] border border-[#263552] text-slate-300 hover:text-white text-xs flex items-center justify-center gap-1.5">
+            <i class="fa-regular fa-copy"></i> Copy Prompt + Live Data
+          </button>
+
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <button id="btn-call-gemini" onclick="runGeminiAudit()" class="btn-press w-full sm:w-auto px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30">
+              <i class="fa-solid fa-bolt"></i> Run AI Execution Audit
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL: QUICK ADD (TASK / HABIT / GOAL / SYSTEM / METRIC)  -->
+  <!-- ========================================================= -->
+  <div id="modal-quick-add" class="fixed inset-0 z-50 modal-backdrop hidden flex items-center justify-center p-4">
+    <div class="bg-[#0f1626] border border-[#222d44] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-[#1a253c] flex items-center justify-between">
+        <h3 class="font-bold text-white text-sm flex items-center gap-2">
+          <i class="fa-solid fa-plus-circle text-blue-400"></i> Quick Add to Cockpit
+        </h3>
+        <button onclick="closeModal('modal-quick-add')" class="text-slate-400 hover:text-white p-1 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Quick Add Tabs -->
+      <div class="flex border-b border-[#1a253c] bg-[#0c1220] text-xs">
+        <button onclick="switchQuickAddTab('task')" id="qa-tab-task" class="flex-1 py-2.5 font-medium text-blue-400 border-b-2 border-blue-500">Action</button>
+        <button onclick="switchQuickAddTab('habit')" id="qa-tab-habit" class="flex-1 py-2.5 font-medium text-slate-400 hover:text-white">Habit</button>
+        <button onclick="switchQuickAddTab('goal')" id="qa-tab-goal" class="flex-1 py-2.5 font-medium text-slate-400 hover:text-white">Goal</button>
+        <button onclick="switchQuickAddTab('system')" id="qa-tab-system" class="flex-1 py-2.5 font-medium text-slate-400 hover:text-white">System</button>
+        <button onclick="switchQuickAddTab('metric')" id="qa-tab-metric" class="flex-1 py-2.5 font-medium text-slate-400 hover:text-white">Metric</button>
+      </div>
+
+      <!-- FORM BODY -->
+      <div class="p-5 text-xs">
+        
+        <!-- 1. Task Form -->
+        <form id="form-add-task" onsubmit="handleCreateTask(event)" class="space-y-4">
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Action Name:</label>
+            <input type="text" id="task-name" required placeholder="e.g. Gym Leg Day or Read Chapter 4" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white focus:outline-none focus:border-blue-500">
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Life Dimension:</label>
+              <select id="task-area" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+                <option value="P">P — Physical & Psychological</option>
+                <option value="I">I — Intellect & Mind</option>
+                <option value="M">M — Money & Wealth</option>
+                <option value="F">F — Fun & Rejuvenation</option>
+                <option value="S">S — Social & Spiritual</option>
+                <option value="L">L — Life & Environment</option>
+              </select>
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Subcategory:</label>
+              <input type="text" id="task-subcategory" placeholder="e.g. Gym, Sport, Coding, Budget" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Time / Period:</label>
+              <select id="task-period" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+                <option value="Morning">Morning (06:00 - 12:00)</option>
+                <option value="Afternoon">Afternoon (12:00 - 18:00)</option>
+                <option value="Evening">Evening (18:00 - 23:00)</option>
+              </select>
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Specific Time (Optional):</label>
+              <input type="time" id="task-time" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white font-mono">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Priority:</label>
+              <select id="task-priority" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+                <option value="High">High Priority</option>
+                <option value="Medium" selected>Medium Priority</option>
+                <option value="Low">Low Priority</option>
+              </select>
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Link to System (Optional):</label>
+              <select id="task-linked-system" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+                <option value="">No System Link</option>
+                <!-- populated dynamically -->
+              </select>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-2">
+            <button type="submit" class="btn-press px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md">Add Action to Today</button>
+          </div>
+        </form>
+
+        <!-- 2. Habit Form -->
+        <form id="form-add-habit" onsubmit="handleCreateHabit(event)" class="space-y-4 hidden">
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Habit Name:</label>
+            <input type="text" id="habit-name" required placeholder="e.g. Drink 3.5L Water or Read 30 Mins" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white focus:outline-none focus:border-blue-500">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Life Dimension:</label>
+              <select id="habit-area" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+                <option value="P">P — Physical</option>
+                <option value="I">I — Intellect</option>
+                <option value="M">M — Money</option>
+                <option value="F">F — Fun</option>
+                <option value="S">S — Social</option>
+              </select>
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Frequency:</label>
+              <select id="habit-freq" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+                <option value="Daily">Daily</option>
+                <option value="Weekly">Weekly (Sun)</option>
+                <option value="Specific Days">3x / Week</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Reminder Time:</label>
+              <input type="time" id="habit-reminder-time" value="08:00" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white font-mono">
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Subcategory:</label>
+              <input type="text" id="habit-subcategory" placeholder="e.g. Mobility, Nutrition, Sport" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+            </div>
+          </div>
+          <div class="flex justify-end pt-2">
+            <button type="submit" class="btn-press px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold">Save Habit Routine</button>
+          </div>
+        </form>
+
+        <!-- 3. Goal Form -->
+        <form id="form-add-goal" onsubmit="handleCreateGoal(event)" class="space-y-4 hidden">
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Goal Aim:</label>
+            <input type="text" id="goal-name" required placeholder="e.g. Run 10K under 50 min" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Area:</label>
+              <select id="goal-area" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+                <option value="P">P — Physical</option>
+                <option value="I">I — Intellect</option>
+                <option value="M">M — Money</option>
+                <option value="F">F — Fun</option>
+                <option value="S">S — Social</option>
+              </select>
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Subcategory:</label>
+              <input type="text" id="goal-subcategory" placeholder="e.g. Gym, Running, Sport" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Target:</label>
+              <input type="number" id="goal-target" required value="10" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white font-mono">
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Current:</label>
+              <input type="number" id="goal-current" required value="4" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white font-mono">
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Unit:</label>
+              <input type="text" id="goal-unit" placeholder="km, books, ₹" value="km" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white font-mono">
+            </div>
+          </div>
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Deadline:</label>
+            <input type="date" id="goal-deadline" value="2026-11-30" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white font-mono">
+          </div>
+          <div class="flex justify-end pt-2">
+            <button type="submit" class="btn-press px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Create Goal</button>
+          </div>
+        </form>
+
+        <!-- 4. System Form -->
+        <form id="form-add-system" onsubmit="handleCreateSystem(event)" class="space-y-4 hidden">
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">System Title:</label>
+            <input type="text" id="system-name" required placeholder="e.g. Zone 2 Endurance Engine" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+          </div>
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">System Purpose & Strategy:</label>
+            <input type="text" id="system-purpose" placeholder="e.g. Run 3x per week with heart rate below 145" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Associated Goal:</label>
+              <select id="system-linked-goal" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+                <!-- populated dynamically -->
+              </select>
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Execution Cadence:</label>
+              <input type="text" id="system-cadence" placeholder="e.g. 3x/week, Daily" value="3x/week" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+            </div>
+          </div>
+          <div class="flex justify-end pt-2">
+            <button type="submit" class="btn-press px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">Commit System</button>
+          </div>
+        </form>
+
+        <!-- 5. Metric Form -->
+        <form id="form-add-metric" onsubmit="handleCreateMetric(event)" class="space-y-4 hidden">
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Metric Title:</label>
+            <input type="text" id="metric-name" required placeholder="e.g. Body Weight or Net Savings" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white">
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Current:</label>
+              <input type="number" id="metric-current" step="any" required placeholder="75" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white font-mono">
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Target:</label>
+              <input type="number" id="metric-target" step="any" required placeholder="72" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white font-mono">
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Unit:</label>
+              <input type="text" id="metric-unit" placeholder="kg, ₹, hrs" value="kg" class="w-full px-3 py-2 rounded-lg bg-[#080c14] border border-[#1e2a42] text-white font-mono">
+            </div>
+          </div>
+          <div class="flex justify-end pt-2">
+            <button type="submit" class="btn-press px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold">Add Metric Tracker</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- FLOATING REMINDER TOAST & COCKPIT POPUP                   -->
+  <!-- ========================================================= -->
+  <div id="reminder-toast" class="fixed bottom-20 md:bottom-6 right-4 md:right-8 z-50 max-w-sm w-full bg-[#0f1626] border border-blue-500/40 rounded-xl p-4 shadow-2xl shadow-blue-500/10 space-y-3 hidden transition-all duration-300">
+    <div class="flex items-start justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-lg" id="toast-icon">⚡</span>
+        <div>
+          <h4 id="toast-title" class="font-bold text-xs text-white">Cockpit Reminder</h4>
+          <p id="toast-body" class="text-[11px] text-slate-300 mt-0.5">Time for your scheduled action.</p>
+        </div>
+      </div>
+      <button onclick="dismissToast()" class="text-slate-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="flex items-center justify-end gap-2 pt-1" id="toast-actions">
+      <button onclick="toastAction('skip')" class="text-[11px] px-2.5 py-1 rounded bg-[#080c14] text-slate-400 hover:text-white border border-[#1e2a42]">Skip</button>
+      <button onclick="toastAction('snooze')" class="text-[11px] px-2.5 py-1 rounded bg-[#080c14] text-amber-300 hover:text-white border border-[#1e2a42]">Snooze 15m</button>
+      <button onclick="toastAction('complete')" class="text-[11px] px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium">Complete</button>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL: SETTINGS, BACKUP, WHATSAPP & CLOUD SYNC            -->
+  <!-- ========================================================= -->
+  <div id="modal-settings" class="fixed inset-0 z-50 modal-backdrop hidden flex items-center justify-center p-4">
+    <div class="bg-[#0f1626] border border-[#222d44] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-[#1a253c] flex items-center justify-between">
+        <h3 class="font-bold text-white text-sm flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-blue-400"></i> Cockpit Settings & Cloud Portability
+        </h3>
+        <button onclick="closeModal('modal-settings')" class="text-slate-400 hover:text-white p-1 text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="p-5 space-y-5 text-xs">
+        
+        <!-- WhatsApp Accountability Partner Config -->
+        <div class="space-y-2 p-3 rounded-xl bg-[#080c14] border border-[#1e2a42]">
+          <span class="font-bold text-slate-200 flex items-center gap-1.5">
+            <i class="fa-brands fa-whatsapp text-emerald-400 text-sm"></i> WhatsApp Accountability Link
+          </span>
+          <p class="text-[11px] text-slate-400">
+            Set partner's phone number with country code (e.g. 919876543210) to message them goals and weekly commitments in 1-click.
+          </p>
+          <input type="text" id="settings-whatsapp-phone" placeholder="e.g. 919876543210" class="w-full px-3 py-2 rounded-lg bg-[#111828] border border-[#1e2a42] text-white font-mono text-xs">
+        </div>
+
+        <!-- Browser Notification Trigger -->
+        <div class="flex items-center justify-between p-3 rounded-xl bg-[#080c14] border border-[#1e2a42]">
+          <div>
+            <span class="font-medium text-slate-200 block">Desktop & Mobile Notifications</span>
+            <span class="text-[11px] text-slate-400">Receive habit & review alerts</span>
+          </div>
+          <button onclick="requestNotificationPermission()" class="px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30 text-xs font-mono">
+            Enable
+          </button>
+        </div>
+
+        <!-- Data Backup & Cloud Portability -->
+        <div class="space-y-2 p-3 rounded-xl bg-[#080c14] border border-[#1e2a42]">
+          <span class="font-bold text-slate-200 block">Data Backup & Deployment Portability</span>
+          <p class="text-[11px] text-slate-400">
+            Export your complete Life OS database to JSON to deploy to GitHub Pages / Vercel without data loss.
+          </p>
+          <div class="flex items-center gap-2 pt-1">
+            <button onclick="exportLifeOSData()" class="flex-1 py-2 rounded-lg bg-[#1e2a42] hover:bg-[#283652] text-slate-200 text-xs font-mono flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-download"></i> Export JSON
+            </button>
+            <label class="flex-1 py-2 rounded-lg bg-[#1e2a42] hover:bg-[#283652] text-slate-200 text-xs font-mono flex items-center justify-center gap-1.5 cursor-pointer text-center">
+              <i class="fa-solid fa-upload"></i> Import JSON
+              <input type="file" id="import-json-file" accept=".json" onchange="importLifeOSData(event)" class="hidden">
+            </label>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-[#1e2a42]">
+          <button onclick="resetToSampleData()" class="text-xs text-rose-400 hover:text-rose-300 font-mono">
+            Reset to Clean State
+          </button>
+          <button onclick="closeModal('modal-settings')" class="px-4 py-1.5 rounded-lg bg-blue-600 text-white font-medium">Done</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ========================================================= */
+    /* LIFE OS CORE DATA ENGINE WITH RECOVERY & RESOURCES        */
+    /* ========================================================= */
+
+    const APP_STORAGE_KEY = 'life_os_cockpit_db_v2';
+
+    const DEFAULT_DATA = {
+      user: {
+        name: "Commander",
+        whatsappPhone: "",
+        notificationsEnabled: false
+      },
+      dailyState: {
+        date: "2026-09-23",
+        onePriority: "Ship Life OS MVP and execute 5K aerobic run",
+        onePriorityCompleted: false,
+        checkin: {
+          completed: false,
+          mood: 4,
+          energy: 4,
+          focus: 4,
+          wentWell: "Entered deep flow for 3 solid hours on core architecture.",
+          didntWell: "Ate lunch slightly late which shifted energy down.",
+          tomorrowFix: "Prepare running shoes by the front door tonight."
+        },
+        calibration: {
+          sleep: 7.5,
+          exercise: 45,
+          learning: 30,
+          social: "Meaningful"
+        }
+      },
+      recoveryState: {
+        protein: 105,
+        proteinTarget: 140,
+        water: 2.5,
+        waterTarget: 3.5,
+        sleepHours: 7.5,
+        sleepQuality: "Fair",
+        checklist: [
+          { id: 'rc1', name: '10-minute Post-Workout Hip & Ankle Stretching', done: true },
+          { id: 'rc2', name: 'Morning Natural Sunlight Exposure (15 mins)', done: true },
+          { id: 'rc3', name: 'Digital Sunset: No Blue Light 45 mins before bed', done: false },
+          { id: 'rc4', name: '4-7-8 Breathing Decompression / Meditation (8 mins)', done: false },
+          { id: 'rc5', name: 'Hot/Cold Contrast Shower or Sauna Session', done: true }
+        ]
+      },
+      goals: [
+        {
+          id: "g1",
+          name: "Run 10K under 50 minutes",
+          description: "Build robust cardiovascular base and mental grit",
+          area: "P",
+          subcategory: "Running & Endurance",
+          target: 10,
+          current: 7.2,
+          unit: "km",
+          deadline: "2026-11-30",
+          status: "Active",
+          systems: ["s1", "s2"],
+          notes: [
+            { id: "gn1", date: "2026-09-23", text: "Completed 7.2km tempo run at 5:12/km pace. Heart rate stayed at 152bpm." },
+            { id: "gn2", date: "2026-09-20", text: "Long run Sunday: 8.5km with hydration pack. Felt fresh on the final kilometer." }
+          ],
+          resources: [
+            { id: "r1", title: "Zone 2 Training Protocol (Dr. Peter Attia)", type: "youtube", url: "https://www.youtube.com/watch?v=SrhkP1h9yJc" },
+            { id: "r2", title: "Hip Mobility for Runners Reel", type: "instagram", url: "https://www.instagram.com/reel/example" }
+          ]
+        },
+        {
+          id: "g2",
+          name: "Build ₹50L Investment Corpus",
+          description: "Systematic capital allocation into broad index funds & high-conviction assets",
+          area: "M",
+          subcategory: "Investing & Wealth",
+          target: 5000000,
+          current: 2450000,
+          unit: "₹",
+          deadline: "2026-12-31",
+          status: "Active",
+          systems: ["s3"],
+          notes: [
+            { id: "gn3", date: "2026-09-22", text: "Automated monthly SIP cleared for Nifty 50 and S&P 500 index funds." }
+          ],
+          resources: [
+            { id: "r3", title: "Asset Allocation & Rebalancing Rules", type: "article", url: "https://investopedia.com" }
+          ]
+        },
+        {
+          id: "g3",
+          name: "Read 24 High-Leverage Books",
+          description: "Mental models, systems engineering, biographies and philosophy",
+          area: "I",
+          subcategory: "Intellect & Learning",
+          target: 24,
+          current: 16,
+          unit: "books",
+          deadline: "2026-12-31",
+          status: "Active",
+          systems: ["s4"],
+          notes: [
+            { id: "gn4", date: "2026-09-21", text: "Finished Chapter 4 of Andy Grove's High Output Management on leverage." }
+          ],
+          resources: []
+        },
+        {
+          id: "g4",
+          name: "Deepen Relationships with Family & Friends",
+          description: "Weekly presence, meaningful dinners and phone calls",
+          area: "S",
+          subcategory: "Relationships",
+          target: 52,
+          current: 37,
+          unit: "weeks",
+          deadline: "2026-12-31",
+          status: "Active",
+          systems: ["s5"],
+          notes: [
+            { id: "gn5", date: "2026-09-21", text: "Sunday family dinner with zero phone distractions on the table." }
+          ],
+          resources: []
+        }
+      ],
+      systems: [
+        {
+          id: "s1",
+          name: "Zone 2 Aerobic Running Engine",
+          purpose: "Run 3 times per week with nasal breathing to build mitochondrial density",
+          goalId: "g1",
+          area: "P",
+          cadence: "3x / week",
+          completionRate: 85,
+          status: "Optimal"
+        },
+        {
+          id: "s2",
+          name: "Strength & Mobility Split",
+          purpose: "4x gym sessions focusing on compound movements & daily 10m hips mobility",
+          goalId: "g1",
+          area: "P",
+          cadence: "4x / week",
+          completionRate: 90,
+          status: "Optimal"
+        },
+        {
+          id: "s3",
+          name: "Automated Capital Deployment",
+          purpose: "SIP investment deployed on 1st of month + weekly expense audit every Sunday",
+          goalId: "g2",
+          area: "M",
+          cadence: "Weekly audit",
+          completionRate: 100,
+          status: "Optimal"
+        },
+        {
+          id: "s4",
+          name: "Nightly 30-Minute Reading Ritual",
+          purpose: "Read non-fiction before sleep with zero phone access in the bedroom",
+          goalId: "g3",
+          area: "I",
+          cadence: "Daily",
+          completionRate: 45, // Under 50% triggers feedback loop warning!
+          status: "Attention"
+        },
+        {
+          id: "s5",
+          name: "Weekly Deep Calls & Sabbath",
+          purpose: "Dedicated call with parents every Sunday and phone-free family dinner",
+          goalId: "g4",
+          area: "S",
+          cadence: "Weekly",
+          completionRate: 75,
+          status: "Optimal"
+        }
+      ],
+      habits: [
+        {
+          id: "h1",
+          name: "Morning Sunlight & 10m Mobility",
+          area: "P",
+          systemId: "s2",
+          frequency: "Daily",
+          time: "07:00",
+          streak: 18,
+          history: [1, 1, 1, 1, 0, 1, 1] // Last 7 days
+        },
+        {
+          id: "h2",
+          name: "Read 30 Minutes (No Phone)",
+          area: "I",
+          systemId: "s4",
+          frequency: "Daily",
+          time: "21:30",
+          streak: 2,
+          history: [0, 1, 0, 0, 1, 0, 0] // Flagged low consistency
+        },
+        {
+          id: "h3",
+          name: "Drink 3.5 Liters Water",
+          area: "P",
+          systemId: "s1",
+          frequency: "Daily",
+          time: "All Day",
+          streak: 12,
+          history: [1, 1, 1, 1, 1, 1, 1]
+        },
+        {
+          id: "h4",
+          name: "Sunday Expense Audit & SIP Check",
+          area: "M",
+          systemId: "s3",
+          frequency: "Weekly",
+          time: "10:00",
+          streak: 8,
+          history: [1, 1, 1, 1, 1, 1, 1]
+        },
+        {
+          id: "h5",
+          name: "Call Parents & Check In",
+          area: "S",
+          systemId: "s5",
+          frequency: "Weekly",
+          time: "19:00",
+          streak: 14,
+          history: [1, 1, 1, 0, 1, 1, 1]
+        }
+      ],
+      tasks: [
+        {
+          id: "t1",
+          name: "Gym — Heavy Pull & Core Workout",
+          area: "P",
+          period: "Morning",
+          time: "07:30",
+          priority: "High",
+          systemId: "s2",
+          completed: true,
+          completedAt: "08:45 AM",
+          resources: [
+            { id: "tr1", title: "Deadlift Cue Breakdown", type: "youtube", url: "https://www.youtube.com/watch?v=op9kVnSso6Q" }
+          ]
+        },
+        {
+          id: "t2",
+          name: "Ship Life OS Execution Layer Core",
+          area: "I",
+          period: "Afternoon",
+          time: "14:00",
+          priority: "High",
+          systemId: "",
+          completed: true,
+          completedAt: "03:15 PM",
+          resources: []
+        },
+        {
+          id: "t3",
+          name: "Review monthly SIP allocation",
+          area: "M",
+          period: "Evening",
+          time: "18:00",
+          priority: "Medium",
+          systemId: "s3",
+          completed: true,
+          completedAt: "06:10 PM",
+          resources: []
+        },
+        {
+          id: "t4",
+          name: "Read 30 minutes of High Output Management",
+          area: "I",
+          period: "Evening",
+          time: "21:00",
+          priority: "High",
+          systemId: "s4",
+          completed: false,
+          resources: []
+        },
+        {
+          id: "t5",
+          name: "Call parents for weekend catch-up",
+          area: "S",
+          period: "Evening",
+          time: "21:45",
+          priority: "Medium",
+          systemId: "s5",
+          completed: false,
+          resources: []
+        }
+      ],
+      metrics: [
+        {
+          id: "m1",
+          name: "Body Weight",
+          area: "P",
+          current: 78.4,
+          target: 74.0,
+          unit: "kg",
+          goalId: "g1",
+          history: [81.0, 80.2, 79.5, 78.9, 78.4]
+        },
+        {
+          id: "m2",
+          name: "Weekly Running Distance",
+          area: "P",
+          current: 24,
+          target: 30,
+          unit: "km",
+          goalId: "g1",
+          history: [15, 18, 22, 20, 24]
+        },
+        {
+          id: "m3",
+          name: "Monthly Savings Rate",
+          area: "M",
+          current: 48,
+          target: 50,
+          unit: "%",
+          goalId: "g2",
+          history: [40, 42, 45, 46, 48]
+        },
+        {
+          id: "m4",
+          name: "Sleep Average",
+          area: "P",
+          current: 7.6,
+          target: 8.0,
+          unit: "hours",
+          goalId: "",
+          history: [7.1, 7.3, 7.5, 7.4, 7.6]
+        }
+      ],
+      weeklyReviews: []
+    };
+
+    let appState = null;
+    let currentTaskFilter = 'all'; // 'all' | 'pending' | 'completed'
+
+    function initAppState() {
+      try {
+        const stored = localStorage.getItem(APP_STORAGE_KEY);
+        if (stored) {
+          appState = JSON.parse(stored);
+          // Migration guarantees for new fields
+          if (!appState.recoveryState) appState.recoveryState = DEFAULT_DATA.recoveryState;
+          appState.goals.forEach(g => {
+            if (!g.notes) g.notes = [];
+            if (!g.resources) g.resources = [];
+          });
+          appState.tasks.forEach(t => {
+            if (!t.resources) t.resources = [];
+          });
+        } else {
+          appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+          saveAppState();
+        }
+      } catch (err) {
+        console.error("Storage loading error:", err);
+        appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      }
+      renderAllViews();
+      setupReminderClock();
+    }
+
+    function saveAppState() {
+      try {
+        localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(appState));
+        updateNavCockpit();
+      } catch (err) {
+        console.error("Error persisting state:", err);
+      }
+    }
+
+    function navigateView(viewId) {
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.add('hidden'));
+      const activePanel = document.getElementById(`view-${viewId}`);
+      if (activePanel) activePanel.classList.remove('hidden');
+
+      document.querySelectorAll('.nav-tab').forEach(t => {
+        t.className = "nav-tab px-3 py-2 rounded-lg font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 flex items-center gap-2 whitespace-nowrap";
+      });
+      const activeTab = document.getElementById(`tab-${viewId}`);
+      if (activeTab) {
+        activeTab.className = "nav-tab px-3 py-2 rounded-lg font-medium text-blue-400 bg-blue-500/10 border border-blue-500/20 flex items-center gap-2 whitespace-nowrap";
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Modal dispatchers — thoroughly linked to all button triggers
+    function openGoalModal() {
+      openQuickAddModal('goal');
+    }
+
+    function openSystemModal(goalId = null) {
+      openQuickAddModal('system', null, goalId);
+    }
+
+    function openMetricModal() {
+      openQuickAddModal('metric');
+    }
+
+    function openTaskModal(period = 'Morning') {
+      openQuickAddModal('task', period);
+    }
+
+    function setTaskFilter(filter) {
+      currentTaskFilter = filter;
+      ['all', 'pending', 'completed'].forEach(f => {
+        const btn = document.getElementById(`btn-filter-${f}`);
+        if (btn) {
+          if (f === filter) {
+            btn.className = "px-2 py-0.5 rounded bg-blue-600 text-white font-medium";
+          } else {
+            btn.className = "px-2 py-0.5 rounded text-slate-400 hover:text-white";
+          }
+        }
+      });
+      renderCommandCenter();
+    }
+
+    function renderCommandCenter() {
+      const actionsContainer = document.getElementById('today-actions-list');
+      actionsContainer.innerHTML = '';
+
+      let filteredTasks = appState.tasks;
+      if (currentTaskFilter === 'pending') {
+        filteredTasks = appState.tasks.filter(t => !t.completed);
+      } else if (currentTaskFilter === 'completed') {
+        filteredTasks = appState.tasks.filter(t => t.completed);
+      }
+
+      if (filteredTasks.length === 0) {
+        actionsContainer.innerHTML = `
+          <div class="p-6 text-center rounded-xl bg-[#0f1626] border border-[#1f2b45] text-slate-400 text-xs">
+            ${currentTaskFilter === 'all' ? 'No actions scheduled today.' : `No ${currentTaskFilter} actions.`}
+            <button onclick="openQuickAddModal('task')" class="text-blue-400 underline ml-1">Add action</button>.
+          </div>`;
+      } else {
+        filteredTasks.forEach(task => {
+          const areaClass = `badge-${task.area.toLowerCase()}`;
+          const isDone = task.completed;
+          const system = appState.systems.find(s => s.id === task.systemId);
+          const resCount = task.resources ? task.resources.length : 0;
+
+          const itemEl = document.createElement('div');
+          itemEl.className = `p-3 rounded-xl bg-[#0f1626] border ${isDone ? 'border-emerald-500/30 bg-emerald-950/5' : 'border-[#1f2b45]'} flex items-center justify-between gap-3 hover:border-slate-700 transition-colors`;
+          itemEl.innerHTML = `
+            <div class="flex items-center gap-3 min-w-0">
+              <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleTaskStatus('${task.id}')" class="w-4 h-4 rounded border-slate-700 text-emerald-600 focus:ring-0 bg-[#080c14] cursor-pointer shrink-0">
+              <div class="truncate">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-semibold ${isDone ? 'line-through text-slate-400' : 'text-slate-100'} truncate">${task.name}</span>
+                  ${isDone ? `<span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shrink-0"><i class="fa-solid fa-check text-[8px]"></i> DONE ${task.completedAt ? '• ' + task.completedAt : ''}</span>` : '<span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 shrink-0">PENDING</span>'}
+                </div>
+                <div class="flex items-center gap-2 text-[10px] text-slate-400 mt-1">
+                  <span class="px-1.5 py-0.2 rounded font-mono font-bold ${areaClass}">${task.area}</span>
+                  ${task.time ? `<span><i class="fa-regular fa-clock text-[9px]"></i> ${task.time}</span>` : ''}
+                  ${system ? `<span class="truncate hidden sm:inline text-slate-500">• ${system.name}</span>` : ''}
+                  <span class="text-[10px] ${task.priority === 'High' ? 'text-amber-400' : 'text-slate-500'}">• ${task.priority}</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="openResourceModal('task', '${task.id}')" title="Attached links & videos" class="text-xs text-slate-400 hover:text-blue-400 p-1 flex items-center gap-1">
+                <i class="fa-solid fa-link text-[10px]"></i>
+                ${resCount > 0 ? `<span class="text-[10px] font-mono text-blue-400 font-bold">${resCount}</span>` : ''}
+              </button>
+              <button onclick="deleteTask('${task.id}')" title="Delete action" class="text-slate-500 hover:text-rose-400 p-1 text-xs"><i class="fa-regular fa-trash-can"></i></button>
+            </div>
+          `;
+          actionsContainer.appendChild(itemEl);
+        });
+      }
+
+      // Counters and completion
+      const doneCount = appState.tasks.filter(t => t.completed).length;
+      const totalCount = appState.tasks.length;
+      const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+      document.getElementById('today-counter-chip').innerText = `${doneCount}/${totalCount} Done`;
+      document.getElementById('today-progress-bar-label').innerText = `${pct}%`;
+      document.getElementById('today-progress-fill').style.width = `${pct}%`;
+      document.getElementById('cc-stat-today-pct').innerText = `${pct}%`;
+      document.getElementById('stat-tasks-done').innerText = `${doneCount} / ${totalCount}`;
+
+      const habitsDone = appState.habits.filter(h => h.history[h.history.length - 1] === 1).length;
+      document.getElementById('stat-habits-done').innerText = `${habitsDone} / ${appState.habits.length}`;
+
+      renderHomeActiveGoals();
+      renderAttentionRequired();
+
+      // Top 5 Questions Answers
+      const activeGoals = appState.goals.filter(g => g.status === 'Active');
+      document.getElementById('cc-ans-aim').innerText = activeGoals[0] ? activeGoals[0].name : "Set Prime Aim";
+      document.getElementById('cc-ans-today').innerText = `${totalCount - doneCount} pending actions`;
+      document.getElementById('cc-ans-progress').innerText = `${pct}% velocity`;
+    }
+
+    function renderHomeActiveGoals() {
+      const goalsContainer = document.getElementById('home-active-goals-grid');
+      goalsContainer.innerHTML = '';
+
+      const activeGoals = appState.goals.filter(g => g.status === 'Active');
+      document.getElementById('cc-stat-active-goals').innerText = activeGoals.length;
+
+      activeGoals.slice(0, 4).forEach(goal => {
+        const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
+        const areaBadge = `badge-${goal.area.toLowerCase()}`;
+        const linkedSystems = appState.systems.filter(s => goal.systems.includes(s.id));
+        const notesCount = goal.notes ? goal.notes.length : 0;
+        const resCount = goal.resources ? goal.resources.length : 0;
+
+        const card = document.createElement('div');
+        card.className = "p-4 rounded-xl bg-[#0f1626] border border-[#1f2b45] space-y-3 hover:border-slate-700 transition-colors";
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded ${areaBadge}">${goal.area} — ${getAreaFullName(goal.area)}</span>
+              <h3 class="text-xs font-bold text-white mt-1.5 uppercase tracking-wide line-clamp-1">${goal.name}</h3>
+            </div>
+            <button onclick="shareGoalToWhatsApp('${goal.id}')" title="Share with WhatsApp Accountability Partner" class="text-emerald-400 hover:text-emerald-300 p-1">
+              <i class="fa-brands fa-whatsapp text-sm"></i>
+            </button>
+          </div>
+
+          <div class="space-y-1">
+            <div class="flex justify-between items-center text-[11px] font-mono">
+              <span class="text-slate-400">${goal.current} / ${goal.target} ${goal.unit}</span>
+              <span class="text-blue-400 font-bold">${pct}%</span>
+            </div>
+            <div class="h-1.5 bg-[#080c14] rounded-full overflow-hidden">
+              <div class="h-full bg-blue-500 rounded-full" style="width: ${pct}%"></div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-[#1a253c] flex items-center justify-between text-[10px] text-slate-400 font-mono">
+            <span>Deadline: ${goal.deadline}</span>
+            <div class="flex items-center gap-2">
+              <button onclick="openGoalNotesModal('${goal.id}')" class="text-slate-300 hover:text-white flex items-center gap-1">
+                <i class="fa-regular fa-calendar-check text-[10px] text-emerald-400"></i> ${notesCount} logs
+              </button>
+              <button onclick="openResourceModal('goal', '${goal.id}')" class="text-slate-300 hover:text-white flex items-center gap-1">
+                <i class="fa-solid fa-link text-[10px] text-blue-400"></i> ${resCount} res
+              </button>
+            </div>
+          </div>
+        `;
+        goalsContainer.appendChild(card);
+      });
+    }
+
+    function renderAttentionRequired() {
+      const container = document.getElementById('attention-items-container');
+      container.innerHTML = '';
+      let alerts = [];
+
+      const failingSystems = appState.systems.filter(s => s.completionRate < 50);
+      failingSystems.forEach(sys => {
+        alerts.push({
+          type: "system",
+          title: `Low Execution in: ${sys.name}`,
+          desc: `Current completion rate is ${sys.completionRate}%. Your routines in this system are lagging.`,
+          actionLabel: "Adjust System",
+          action: () => promptAdjustSystem(sys.id)
+        });
+      });
+
+      const uncompletedTasks = appState.tasks.filter(t => !t.completed && t.priority === 'High');
+      if (uncompletedTasks.length > 0) {
+        alerts.push({
+          type: "task",
+          title: `${uncompletedTasks.length} High Priority Actions Pending`,
+          desc: `Top priority: "${uncompletedTasks[0].name}"`,
+          actionLabel: "Execute Now",
+          action: () => navigateView('daily-plan')
+        });
+      }
+
+      if (!appState.dailyState.checkin.completed) {
+        alerts.push({
+          type: "checkin",
+          title: "Daily Check-in Pending",
+          desc: "Close today's loop before resting.",
+          actionLabel: "Check In",
+          action: () => document.getElementById('checkin-went-well').focus()
+        });
+      }
+
+      document.getElementById('attention-count').innerText = `${alerts.length} Alerts`;
+      if (alerts.length > 0) {
+        document.getElementById('cc-ans-attention').innerText = alerts[0].title;
+      } else {
+        document.getElementById('cc-ans-attention').innerText = "All systems green";
+      }
+
+      alerts.forEach(item => {
+        const box = document.createElement('div');
+        box.className = "p-3 rounded-xl bg-[#131b2c] border border-amber-500/25 space-y-2";
+        box.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-triangle-exclamation text-[10px]"></i> ${item.title}
+              </span>
+              <p class="text-[11px] text-slate-400 mt-1 leading-snug">${item.desc}</p>
+            </div>
+          </div>
+          <div class="flex justify-end pt-1">
+            <button class="action-btn text-[11px] px-2.5 py-1 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 font-medium">
+              ${item.actionLabel}
+            </button>
+          </div>
+        `;
+        box.querySelector('.action-btn').onclick = item.action;
+        container.appendChild(box);
+      });
+    }
+
+    function renderDailyPlan() {
+      document.getElementById('daily-sheet-date').innerText = appState.dailyState.date;
+      const priorityCheck = document.getElementById('daily-one-priority-check');
+      const priorityInput = document.getElementById('daily-one-priority-input');
+      priorityCheck.checked = appState.dailyState.onePriorityCompleted;
+      priorityInput.value = appState.dailyState.onePriority;
+
+      const badge = document.getElementById('daily-one-status-badge');
+      if (appState.dailyState.onePriorityCompleted) {
+        priorityInput.classList.add('line-through', 'text-slate-400');
+        badge.innerText = "✓ ACCOMPLISHED TODAY";
+        badge.className = "text-[11px] font-mono text-emerald-400 font-bold";
+      } else {
+        priorityInput.classList.remove('line-through', 'text-slate-400');
+        badge.innerText = "Make this day a guaranteed win";
+        badge.className = "text-[11px] font-mono text-slate-400";
+      }
+
+      const morningList = document.getElementById('daily-morning-list');
+      const afternoonList = document.getElementById('daily-afternoon-list');
+      const eveningList = document.getElementById('daily-evening-list');
+
+      morningList.innerHTML = '';
+      afternoonList.innerHTML = '';
+      eveningList.innerHTML = '';
+
+      appState.tasks.forEach(task => {
+        const item = document.createElement('div');
+        const isDone = task.completed;
+        item.className = `p-2.5 rounded-lg bg-[#080c14] border ${isDone ? 'border-emerald-500/30 opacity-70' : 'border-[#1e2a42]'} flex items-center justify-between gap-2`;
+        item.innerHTML = `
+          <div class="flex items-center gap-2 truncate">
+            <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleTaskStatus('${task.id}')" class="w-3.5 h-3.5 rounded border-slate-700 text-emerald-600 bg-[#0c1220]">
+            <span class="${isDone ? 'line-through text-slate-400' : 'text-slate-200'} truncate text-xs">${task.name}</span>
+          </div>
+          <span class="text-[10px] font-mono ${isDone ? 'text-emerald-400 font-bold' : 'text-slate-400'} shrink-0">${isDone ? '✓ DONE' : (task.time || '')}</span>
+        `;
+
+        if (task.period === 'Morning') morningList.appendChild(item);
+        else if (task.period === 'Afternoon') afternoonList.appendChild(item);
+        else eveningList.appendChild(item);
+      });
+
+      if (morningList.children.length === 0) morningList.innerHTML = `<span class="text-slate-500 italic">No morning actions</span>`;
+      if (afternoonList.children.length === 0) afternoonList.innerHTML = `<span class="text-slate-500 italic">No afternoon actions</span>`;
+      if (eveningList.children.length === 0) eveningList.innerHTML = `<span class="text-slate-500 italic">No evening actions</span>`;
+
+      if (appState.dailyState.calibration) {
+        document.getElementById('daily-sleep-hours').value = appState.dailyState.calibration.sleep;
+        document.getElementById('daily-exercise-min').value = appState.dailyState.calibration.exercise;
+        document.getElementById('daily-learning-min').value = appState.dailyState.calibration.learning;
+        document.getElementById('daily-social-quality').value = appState.dailyState.calibration.social;
+      }
+    }
+
+    let currentGoalAreaFilter = 'ALL';
+
+    function renderGoalsAndSystems() {
+      const container = document.getElementById('goals-list-container');
+      container.innerHTML = '';
+
+      const filteredGoals = currentGoalAreaFilter === 'ALL'
+        ? appState.goals
+        : appState.goals.filter(g => g.area === currentGoalAreaFilter);
+
+      if (filteredGoals.length === 0) {
+        container.innerHTML = `<div class="p-8 text-center bg-[#0f1626] rounded-2xl border border-[#1f2b45] text-slate-400 text-xs">No goals found for this category. Click "+ New Goal" above to create one.</div>`;
+        return;
+      }
+
+      filteredGoals.forEach(goal => {
+        const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
+        const areaBadge = `badge-${goal.area.toLowerCase()}`;
+        const linkedSystems = appState.systems.filter(s => goal.systems.includes(s.id));
+        const notes = goal.notes || [];
+        const resources = goal.resources || [];
+
+        const goalCard = document.createElement('div');
+        goalCard.className = "p-6 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-5";
+        
+        let systemsHtml = '';
+        if (linkedSystems.length === 0) {
+          systemsHtml = `<div class="text-slate-500 text-xs italic">No operational systems linked yet. Add a system below to anchor this goal.</div>`;
+        } else {
+          linkedSystems.forEach(sys => {
+            const isFailing = sys.completionRate < 50;
+            systemsHtml += `
+              <div class="p-3.5 rounded-xl bg-[#080c14] border ${isFailing ? 'border-amber-500/30' : 'border-[#1b253b]'} flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-white">⚙️ ${sys.name}</span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">${sys.cadence}</span>
+                    ${isFailing ? '<span class="text-[10px] text-amber-400 font-mono px-1.5 py-0.2 rounded bg-amber-500/10">Lagging (<50%)</span>' : ''}
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-1">${sys.purpose}</p>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <div class="text-right">
+                    <div class="text-[10px] text-slate-400">Execution</div>
+                    <div class="font-mono text-xs font-bold ${isFailing ? 'text-amber-400' : 'text-emerald-400'}">${sys.completionRate}%</div>
+                  </div>
+                  <button onclick="promptAdjustSystem('${sys.id}')" class="text-[11px] px-2.5 py-1 rounded bg-[#162033] hover:bg-[#202c46] text-slate-300">Adjust</button>
+                </div>
+              </div>
+            `;
+          });
+        }
+
+        // Recent dated notes summary
+        let notesPreviewHtml = '';
+        if (notes.length === 0) {
+          notesPreviewHtml = `<span class="text-slate-500 text-xs italic">No dated notes logged yet.</span>`;
+        } else {
+          notesPreviewHtml = notes.slice(0, 2).map(n => `
+            <div class="text-[11px] text-slate-300 flex items-start gap-2">
+              <span class="font-mono text-emerald-400 shrink-0 font-medium">[${n.date}]:</span>
+              <span class="truncate">${n.text}</span>
+            </div>
+          `).join('');
+        }
+
+        goalCard.innerHTML = `
+          <div class="flex flex-col md:flex-row md:items-start justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-mono px-2 py-0.5 rounded ${areaBadge}">${goal.area} — ${getAreaFullName(goal.area)}</span>
+                ${goal.subcategory ? `<span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">${goal.subcategory}</span>` : ''}
+                <span class="text-xs text-slate-500 font-mono">Deadline: ${goal.deadline}</span>
+              </div>
+              <h2 class="text-base font-bold text-white mt-1.5">${goal.name}</h2>
+              <p class="text-xs text-slate-400 mt-0.5">${goal.description || ''}</p>
+            </div>
+
+            <!-- WhatsApp Accountability Partner Button & Actions -->
+            <div class="flex items-center gap-2 self-start md:self-auto flex-wrap">
+              <button onclick="openGoalNotesModal('${goal.id}')" class="btn-press flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-600/15 border border-blue-500/30 text-blue-300 hover:bg-blue-600/25">
+                <i class="fa-solid fa-book-open"></i>
+                <span>Dated Notes (${notes.length})</span>
+              </button>
+              <button onclick="openResourceModal('goal', '${goal.id}')" class="btn-press flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-indigo-600/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-600/25">
+                <i class="fa-solid fa-link"></i>
+                <span>Links & Videos (${resources.length})</span>
+              </button>
+              <button onclick="shareGoalToWhatsApp('${goal.id}')" class="btn-press flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/25 transition-all">
+                <i class="fa-brands fa-whatsapp text-sm"></i>
+                <span>WhatsApp Partner</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress Bar & Metrics -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between items-center text-xs font-mono">
+              <span class="text-slate-400">Current: ${goal.current} ${goal.unit} / Target: ${goal.target} ${goal.unit}</span>
+              <span class="text-blue-400 font-bold">${pct}%</span>
+            </div>
+            <div class="h-2 bg-[#080c14] rounded-full overflow-hidden">
+              <div class="h-full bg-blue-500 rounded-full" style="width: ${pct}%"></div>
+            </div>
+          </div>
+
+          <!-- Dated Progress Notes Preview Bar -->
+          <div class="p-3 rounded-xl bg-[#080c14] border border-[#1b253b] space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-slate-300 flex items-center gap-1.5">
+                <i class="fa-regular fa-calendar-check text-emerald-400"></i> Latest Activity Logs:
+              </span>
+              <button onclick="openGoalNotesModal('${goal.id}')" class="text-blue-400 hover:underline text-[11px] font-mono">+ Log Today's Entry</button>
+            </div>
+            <div class="space-y-1">
+              ${notesPreviewHtml}
+            </div>
+          </div>
+
+          <!-- Supporting Systems Section -->
+          <div class="space-y-2 pt-2 border-t border-[#1b253b]">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Supporting Systems (${linkedSystems.length})</span>
+              <!-- Working button opens system modal pre-linked to this goal -->
+              <button onclick="openSystemModal('${goal.id}')" class="text-xs text-blue-400 hover:text-blue-300 font-mono">+ Link System</button>
+            </div>
+            <div class="space-y-2">
+              ${systemsHtml}
+            </div>
+          </div>
+        `;
+        container.appendChild(goalCard);
+      });
+    }
+
+    function filterGoalsArea(area) {
+      currentGoalAreaFilter = area;
+      document.querySelectorAll('.goal-filter-btn').forEach(b => {
+        b.className = "goal-filter-btn px-3 py-1 rounded-md bg-[#111828] text-slate-400 hover:text-white border border-[#1e2a42]";
+      });
+      event.target.className = "goal-filter-btn px-3 py-1 rounded-md bg-blue-600 text-white font-medium";
+      renderGoalsAndSystems();
+    }
+
+    let currentHabitFreq = 'all';
+
+    function renderHabits() {
+      const container = document.getElementById('habits-matrix-container');
+      container.innerHTML = '';
+
+      const filtered = currentHabitFreq === 'all'
+        ? appState.habits
+        : appState.habits.filter(h => h.frequency.toLowerCase().includes(currentHabitFreq));
+
+      filtered.forEach(habit => {
+        const areaBadge = `badge-${habit.area.toLowerCase()}`;
+        const system = appState.systems.find(s => s.id === habit.systemId);
+        const isDoneToday = habit.history[habit.history.length - 1] === 1;
+
+        let historyBoxes = '';
+        habit.history.forEach((status, idx) => {
+          const isDone = status === 1;
+          historyBoxes += `
+            <button onclick="toggleHabitHistory('${habit.id}', ${idx})" title="Day ${idx + 1}" class="w-6 h-6 rounded flex items-center justify-center font-mono text-[10px] ${isDone ? 'bg-emerald-500 text-white' : 'bg-[#080c14] text-slate-600 border border-[#1c263c]'}">
+              ${isDone ? '✓' : '•'}
+            </button>
+          `;
+        });
+
+        const card = document.createElement('div');
+        card.className = `p-4 rounded-xl bg-[#0f1626] border ${isDoneToday ? 'border-emerald-500/30' : 'border-[#1f2b45]'} flex flex-col md:flex-row md:items-center justify-between gap-4`;
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-mono px-1.5 py-0.2 rounded ${areaBadge}">${habit.area}</span>
+              <span class="text-xs font-bold text-white">${habit.name}</span>
+              <span class="text-[10px] text-slate-400 font-mono">Streak: ${habit.streak}d</span>
+              ${isDoneToday ? '<span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">✓ DONE TODAY</span>' : '<span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300">PENDING TODAY</span>'}
+            </div>
+            <div class="flex items-center gap-2 text-[11px] text-slate-400 mt-1">
+              <span>Freq: ${habit.frequency}</span>
+              ${habit.time ? `<span>• Reminder: ${habit.time}</span>` : ''}
+              ${system ? `<span class="text-slate-500">• Sys: ${system.name}</span>` : ''}
+            </div>
+          </div>
+
+          <!-- 7-Day Consistency Grid -->
+          <div class="flex items-center gap-1.5 shrink-0">
+            ${historyBoxes}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function switchHabitFreqTab(freq) {
+      currentHabitFreq = freq;
+      ['all', 'daily', 'weekly', 'monthly'].forEach(f => {
+        const el = document.getElementById(`habit-tab-${f}`);
+        if (el) el.className = "px-3 py-1.5 rounded-lg bg-[#0e1424] text-slate-400 font-medium hover:text-slate-200";
+      });
+      document.getElementById(`habit-tab-${freq}`).className = "px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-300 font-medium border border-blue-500/30";
+      renderHabits();
+    }
+
+    function renderRecoveryCockpit() {
+      const rec = appState.recoveryState;
+      // Protein
+      document.getElementById('protein-target-badge').innerText = `Target: ${rec.proteinTarget}g`;
+      document.getElementById('protein-current-val').innerText = `${rec.protein}g / ${rec.proteinTarget}g`;
+      const protPct = Math.min(100, Math.round((rec.protein / rec.proteinTarget) * 100));
+      document.getElementById('protein-progress-fill').style.width = `${protPct}%`;
+
+      // Water
+      document.getElementById('water-current-val').innerText = `${rec.water.toFixed(1)}L / ${rec.waterTarget}L`;
+
+      // Sleep
+      document.getElementById('rec-sleep-hours').value = rec.sleepHours;
+      document.getElementById('rec-sleep-quality').value = rec.sleepQuality;
+
+      // Checklist
+      const listContainer = document.getElementById('recovery-checklist-container');
+      listContainer.innerHTML = '';
+      rec.checklist.forEach(item => {
+        const el = document.createElement('div');
+        el.className = `p-2 rounded-lg bg-[#080c14] border ${item.done ? 'border-emerald-500/30 text-slate-300' : 'border-[#1e2a42] text-slate-200'} flex items-center justify-between`;
+        el.innerHTML = `
+          <div class="flex items-center gap-2">
+            <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleRecoveryItem('${item.id}')" class="w-3.5 h-3.5 rounded border-slate-700 text-emerald-600 cursor-pointer">
+            <span class="${item.done ? 'line-through text-slate-400' : ''}">${item.name}</span>
+          </div>
+          ${item.done ? '<span class="text-[9px] font-mono text-emerald-400">RESTORED</span>' : ''}
+        `;
+        listContainer.appendChild(el);
+      });
+
+      // Composite Recovery Score (0 - 100)
+      const checklistDone = rec.checklist.filter(i => i.done).length;
+      const checklistPct = (checklistDone / rec.checklist.length) * 100;
+      const waterPct = Math.min(100, (rec.water / rec.waterTarget) * 100);
+      const sleepQualityMultiplier = rec.sleepQuality === 'Deep' ? 1.0 : (rec.sleepQuality === 'Fair' ? 0.75 : 0.4);
+      const sleepPct = Math.min(100, (rec.sleepHours / 8.0) * 100) * sleepQualityMultiplier;
+
+      const composite = Math.round((protPct * 0.25) + (waterPct * 0.25) + (sleepPct * 0.3) + (checklistPct * 0.2));
+      document.getElementById('recovery-live-score').innerText = `${composite}%`;
+      document.getElementById('cc-stat-recovery-score').innerText = `${composite}%`;
+      document.getElementById('stat-recovery-metric').innerText = `${composite}% Optimal`;
+    }
+
+    function addProtein(g) {
+      appState.recoveryState.protein += g;
+      saveAppState();
+      renderRecoveryCockpit();
+      showToast("Fuel Logged", `+${g}g protein recorded. Total: ${appState.recoveryState.protein}g`);
+    }
+
+    function resetProtein() {
+      appState.recoveryState.protein = 0;
+      saveAppState();
+      renderRecoveryCockpit();
+    }
+
+    function addWater(l) {
+      appState.recoveryState.water = Math.round((appState.recoveryState.water + l) * 10) / 10;
+      saveAppState();
+      renderRecoveryCockpit();
+      showToast("Hydrated", `+${l * 1000}ml water recorded.`);
+    }
+
+    function resetWater() {
+      appState.recoveryState.water = 0;
+      saveAppState();
+      renderRecoveryCockpit();
+    }
+
+    function toggleRecoveryItem(id) {
+      const item = appState.recoveryState.checklist.find(i => i.id === id);
+      if (item) {
+        item.done = !item.done;
+        saveAppState();
+        renderRecoveryCockpit();
+      }
+    }
+
+    function updateRecoveryScores() {
+      appState.recoveryState.sleepHours = parseFloat(document.getElementById('rec-sleep-hours').value) || 7.5;
+      appState.recoveryState.sleepQuality = document.getElementById('rec-sleep-quality').value;
+      saveAppState();
+      renderRecoveryCockpit();
+    }
+
+    function renderMetrics() {
+      const container = document.getElementById('metrics-cards-grid');
+      container.innerHTML = '';
+
+      appState.metrics.forEach(metric => {
+        const areaBadge = `badge-${metric.area.toLowerCase()}`;
+        const card = document.createElement('div');
+        card.className = "p-5 rounded-2xl bg-[#0f1626] border border-[#1f2b45] space-y-4";
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded ${areaBadge}">${metric.area}</span>
+            <button onclick="logMetricValuePrompt('${metric.id}')" class="text-xs text-blue-400 hover:text-blue-300 font-mono">+ Log Value</button>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">${metric.name}</h3>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span class="text-2xl font-bold font-mono text-emerald-400">${metric.current}</span>
+              <span class="text-xs text-slate-400 font-mono">/ Target ${metric.target} ${metric.unit}</span>
+            </div>
+          </div>
+          <div class="pt-2 border-t border-[#1b253b] text-[11px] text-slate-400">
+            Recent: ${metric.history.join(' → ')} ${metric.unit}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderDashboard() {
+      const list = document.getElementById('dash-dimensions-list');
+      list.innerHTML = '';
+
+      const areas = [
+        { code: 'F', name: 'Fun & Rejuvenation', score: 65, color: '#f59e0b' },
+        { code: 'I', name: 'Intellect & Mind', score: 75, color: '#8b5cf6' },
+        { code: 'M', name: 'Money & Wealth', score: 80, color: '#10b981' },
+        { code: 'P', name: 'Physical & Psychological', score: 85, color: '#06b6d4' },
+        { code: 'S', name: 'Social & Spiritual', score: 70, color: '#ec4899' },
+        { code: 'L', name: 'Life & Environment', score: 60, color: '#14b8a6' }
+      ];
+
+      areas.forEach(item => {
+        const row = document.createElement('div');
+        row.className = "space-y-1";
+        row.innerHTML = `
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-medium text-slate-200">${item.code} — ${item.name}</span>
+            <span class="font-mono text-slate-300">${item.score}%</span>
+          </div>
+          <div class="h-2 bg-[#080c14] rounded-full overflow-hidden">
+            <div class="h-full rounded-full" style="width: ${item.score}%; background-color: ${item.color}"></div>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+
+      // Chart 2: Energy & Mood Curve
+      const chart = document.getElementById('dash-mood-chart');
+      chart.innerHTML = '';
+      const sampleDays = [
+        { day: 'Thu', val: 70 },
+        { day: 'Fri', val: 85 },
+        { day: 'Sat', val: 90 },
+        { day: 'Sun', val: 75 },
+        { day: 'Mon', val: 80 },
+        { day: 'Tue', val: 88 },
+        { day: 'Wed', val: 82 }
+      ];
+
+      sampleDays.forEach(d => {
+        const col = document.createElement('div');
+        col.className = "flex-1 flex flex-col items-center gap-1.5 h-full justify-end";
+        col.innerHTML = `
+          <div class="w-full max-w-[28px] rounded-t bg-gradient-to-t from-blue-600 via-indigo-500 to-emerald-400 transition-all duration-500" style="height: ${d.val}%"></div>
+          <span class="text-[10px] font-mono text-slate-400">${d.day}</span>
+        `;
+        chart.appendChild(col);
+      });
+
+      // Chart 3: Execution Velocity
+      const velocityChart = document.getElementById('dash-velocity-chart');
+      velocityChart.innerHTML = '';
+      const velocityDays = [
+        { d: 'Thu', pct: 80 },
+        { d: 'Fri', pct: 90 },
+        { d: 'Sat', pct: 85 },
+        { d: 'Sun', pct: 70 },
+        { d: 'Mon', pct: 95 },
+        { d: 'Tue', pct: 80 },
+        { d: 'Wed', pct: 75 }
+      ];
+      velocityDays.forEach(v => {
+        const col = document.createElement('div');
+        col.className = "flex-1 flex flex-col items-center justify-end h-full gap-1";
+        col.innerHTML = `
+          <span class="text-[9px] font-mono text-slate-400">${v.pct}%</span>
+          <div class="w-full max-w-[24px] rounded bg-blue-500" style="height: ${v.pct * 0.7}%"></div>
+          <span class="text-[10px] font-mono text-slate-400">${v.d}</span>
+        `;
+        velocityChart.appendChild(col);
+      });
+
+      // Chart 4: Habit Consistency Heatmap
+      const heatmap = document.getElementById('dash-habits-heatmap');
+      heatmap.innerHTML = '';
+      appState.habits.forEach(h => {
+        let cells = '';
+        // 14 day simulated matrix
+        const fullHistory = [1, 1, 1, 0, 1, 1, 1, ...h.history].slice(-14);
+        fullHistory.forEach(c => {
+          cells += `<div class="w-4 h-4 rounded-sm ${c === 1 ? 'bg-emerald-500' : 'bg-[#080c14] border border-[#1e2a42]'}"></div>`;
+        });
+        const row = document.createElement('div');
+        row.className = "flex items-center justify-between text-xs";
+        row.innerHTML = `
+          <span class="text-slate-300 truncate max-w-[140px] text-[11px]">${h.name}</span>
+          <div class="flex items-center gap-1">${cells}</div>
+        `;
+        heatmap.appendChild(row);
+      });
+    }
+
+    function setDashboardTimeFilter(period) {
+      ['today', 'week', 'month', 'quarter'].forEach(p => {
+        const btn = document.getElementById(`dash-time-${p}`);
+        if (btn) {
+          if (p === period) {
+            btn.className = "px-2.5 py-1 rounded bg-blue-600 text-white font-medium";
+          } else {
+            btn.className = "px-2.5 py-1 rounded text-slate-400 hover:text-white";
+          }
+        }
+      });
+      renderDashboard();
+    }
+
+    function getAreaFullName(code) {
+      switch(code) {
+        case 'F': return 'Fun';
+        case 'I': return 'Intellect';
+        case 'M': return 'Money';
+        case 'P': return 'Physical';
+        case 'S': return 'Social';
+        case 'L': return 'Life';
+        default: return 'General';
+      }
+    }
+
+    function updateNavCockpit() {
+      const score = 84;
+      document.getElementById('nav-life-score').innerText = `${score}%`;
+      document.getElementById('nav-life-score-bar').style.width = `${score}%`;
+      if (appState.dailyState.onePriority) {
+        document.getElementById('nav-daily-focus-chip').innerText = appState.dailyState.onePriority;
+      }
+    }
+
+    function renderAllViews() {
+      renderCommandCenter();
+      renderDailyPlan();
+      renderGoalsAndSystems();
+      renderHabits();
+      renderRecoveryCockpit();
+      renderMetrics();
+      renderDashboard();
+      updateNavCockpit();
+    }
+
+    function toggleTaskStatus(taskId) {
+      const task = appState.tasks.find(t => t.id === taskId);
+      if (task) {
+        task.completed = !task.completed;
+        if (task.completed) {
+          const now = new Date();
+          task.completedAt = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else {
+          task.completedAt = null;
+        }
+        saveAppState();
+        renderCommandCenter();
+        renderDailyPlan();
+      }
+    }
+
+    function deleteTask(taskId) {
+      appState.tasks = appState.tasks.filter(t => t.id !== taskId);
+      saveAppState();
+      renderCommandCenter();
+      renderDailyPlan();
+    }
+
+    function toggleDailyPriorityComplete() {
+      const check = document.getElementById('daily-one-priority-check');
+      appState.dailyState.onePriorityCompleted = check.checked;
+      saveAppState();
+      renderDailyPlan();
+    }
+
+    function saveDailyPriority() {
+      const input = document.getElementById('daily-one-priority-input');
+      appState.dailyState.onePriority = input.value;
+      saveAppState();
+      showToast("Priority Locked", "Today's main leverage point has been saved.");
+      renderDailyPlan();
+    }
+
+    function toggleHabitHistory(habitId, dayIndex) {
+      const habit = appState.habits.find(h => h.id === habitId);
+      if (habit) {
+        habit.history[dayIndex] = habit.history[dayIndex] === 1 ? 0 : 1;
+        saveAppState();
+        renderHabits();
+        renderCommandCenter();
+      }
+    }
+
+    let currentCheckinScores = { mood: 4, energy: 4, focus: 4 };
+
+    function setCheckinScore(metric, val) {
+      currentCheckinScores[metric] = val;
+      const selector = document.getElementById(`checkin-${metric}-selector`);
+      selector.querySelectorAll('.score-btn').forEach((b, idx) => {
+        if (idx + 1 === val) {
+          b.className = "score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-blue-600 text-white font-bold border border-blue-400";
+        } else {
+          b.className = "score-btn flex-1 py-2 text-xs font-mono rounded-lg bg-[#080c14] border border-[#1e2a42] text-slate-300";
+        }
+      });
+    }
+
+    function saveDailyCheckin() {
+      const wentWell = document.getElementById('checkin-went-well').value;
+      const didntWell = document.getElementById('checkin-didnt-well').value;
+      const tomorrowFix = document.getElementById('checkin-tomorrow-fix').value;
+
+      appState.dailyState.checkin = {
+        completed: true,
+        mood: currentCheckinScores.mood,
+        energy: currentCheckinScores.energy,
+        focus: currentCheckinScores.focus,
+        wentWell,
+        didntWell,
+        tomorrowFix
+      };
+
+      saveAppState();
+      document.getElementById('checkin-status-badge').className = "text-xs font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
+      document.getElementById('checkin-status-badge').innerText = "✓ Calibrated for Today";
+      showToast("Day Calibrated", "Reflection logged. Sleep well and review tomorrow.");
+      renderCommandCenter();
+    }
+
+    function saveDailyCalibrationSheet() {
+      appState.dailyState.calibration = {
+        sleep: parseFloat(document.getElementById('daily-sleep-hours').value) || 7.5,
+        exercise: parseInt(document.getElementById('daily-exercise-min').value) || 45,
+        learning: parseInt(document.getElementById('daily-learning-min').value) || 30,
+        social: document.getElementById('daily-social-quality').value
+      };
+      saveAppState();
+      showToast("Calibration Stored", "Daily operating parameters synced.");
+    }
+
+    function saveWeeklyReview() {
+      const reviewObj = {
+        date: new Date().toISOString().split('T')[0],
+        q1: document.getElementById('wr-q1').value,
+        q2: document.getElementById('wr-q2').value,
+        q3: document.getElementById('wr-q3').value,
+        q4: document.getElementById('wr-q4').value,
+        q5: document.getElementById('wr-q5').value,
+        q6: document.getElementById('wr-q6').value,
+        q7: document.getElementById('wr-q7').value
+      };
+
+      appState.weeklyReviews.push(reviewObj);
+      saveAppState();
+      showToast("Weekly Review Archived", "Next week's prime focus committed to the engine.");
+    }
+
+    function promptAdjustSystem(sysId) {
+      const sys = appState.systems.find(s => s.id === sysId);
+      if (!sys) return;
+
+      const choice = prompt(`System Adjustment: "${sys.name}"\n\nCurrent Completion: ${sys.completionRate}%\n\nType 1 to adjust Frequency\nType 2 to reduce Friction\nType 3 to mark Resolved:`);
+      if (choice === '1') {
+        const newCad = prompt("Enter new cadence (e.g. 2x / week):", sys.cadence);
+        if (newCad) sys.cadence = newCad;
+      } else if (choice === '2') {
+        const newPurpose = prompt("Simplify purpose / minimum viable action:", sys.purpose);
+        if (newPurpose) sys.purpose = newPurpose;
+      } else if (choice === '3') {
+        sys.completionRate = 85;
+      }
+      saveAppState();
+      renderAllViews();
+    }
+
+    function shareGoalToWhatsApp(goalId) {
+      const goal = appState.goals.find(g => g.id === goalId);
+      if (!goal) return;
+
+      const partnerPhone = appState.user.whatsappPhone || "";
+      const text = `*Life OS Accountability Pledge*%0A%0A🎯 *Goal:* ${goal.name}%0A📂 *Area:* ${goal.area} — ${getAreaFullName(goal.area)}%0A📊 *Target:* ${goal.current} / ${goal.target} ${goal.unit}%0A⏳ *Deadline:* ${goal.deadline}%0A%0A_I am executing this system daily. Please hold me accountable during our weekly review!_`;
+
+      let url = `https://api.whatsapp.com/send?text=${text}`;
+      if (partnerPhone && partnerPhone.trim().length > 5) {
+        url = `https://api.whatsapp.com/send?phone=${partnerPhone.trim()}&text=${text}`;
+      }
+
+      window.open(url, '_blank');
+    }
+
+    let currentNoteGoalId = null;
+
+    function openGoalNotesModal(goalId) {
+      currentNoteGoalId = goalId;
+      const goal = appState.goals.find(g => g.id === goalId);
+      if (!goal) return;
+
+      document.getElementById('goal-notes-modal-title').innerText = `Dated Progress Logs: ${goal.name}`;
+      document.getElementById('goal-note-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('goal-note-text').value = '';
+
+      renderGoalNotesTimeline(goal);
+      document.getElementById('modal-goal-notes').classList.remove('hidden');
+    }
+
+    function renderGoalNotesTimeline(goal) {
+      const container = document.getElementById('goal-notes-timeline');
+      container.innerHTML = '';
+
+      const notes = goal.notes || [];
+      if (notes.length === 0) {
+        container.innerHTML = `<span class="text-slate-500 italic text-xs">No entries recorded yet. Add your first dated note above.</span>`;
+        return;
+      }
+
+      // Sort reverse chronological
+      const sorted = [...notes].sort((a, b) => new Date(b.date) - new Date(a.date));
+      sorted.forEach(n => {
+        const item = document.createElement('div');
+        item.className = "p-2.5 rounded-lg bg-[#080c14] border border-[#1e2a42] space-y-1 relative";
+        item.innerHTML = `
+          <div class="flex items-center justify-between text-[10px] font-mono">
+            <span class="text-emerald-400 font-bold"><i class="fa-regular fa-clock"></i> ${n.date}</span>
+            <button onclick="deleteGoalNote('${goal.id}', '${n.id}')" class="text-slate-500 hover:text-rose-400"><i class="fa-regular fa-trash-can"></i></button>
+          </div>
+          <p class="text-xs text-slate-200 leading-relaxed">${n.text}</p>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function handleCreateGoalNote(e) {
+      e.preventDefault();
+      const goal = appState.goals.find(g => g.id === currentNoteGoalId);
+      if (!goal) return;
+
+      const newNote = {
+        id: 'gn_' + Date.now(),
+        date: document.getElementById('goal-note-date').value,
+        text: document.getElementById('goal-note-text').value
+      };
+
+      if (!goal.notes) goal.notes = [];
+      goal.notes.push(newNote);
+      saveAppState();
+      renderGoalNotesTimeline(goal);
+      renderGoalsAndSystems();
+      renderHomeActiveGoals();
+      document.getElementById('goal-note-text').value = '';
+      showToast("Dated Log Added", `Progress saved for ${newNote.date}.`);
+    }
+
+    function deleteGoalNote(goalId, noteId) {
+      const goal = appState.goals.find(g => g.id === goalId);
+      if (!goal) return;
+      goal.notes = goal.notes.filter(n => n.id !== noteId);
+      saveAppState();
+      renderGoalNotesTimeline(goal);
+      renderGoalsAndSystems();
+      renderHomeActiveGoals();
+    }
+
+    let currentResEntityType = null; // 'goal' | 'task'
+    let currentResEntityId = null;
+
+    function openResourceModal(type, id) {
+      currentResEntityType = type;
+      currentResEntityId = id;
+
+      let entity = null;
+      if (type === 'goal') entity = appState.goals.find(g => g.id === id);
+      else entity = appState.tasks.find(t => t.id === id);
+
+      if (!entity) return;
+
+      document.getElementById('resource-modal-title').innerText = `Resources: ${entity.name}`;
+      document.getElementById('resource-modal-subtitle').innerText = `Knowledge, YouTube tutorials & Instagram reference for this ${type}`;
+      document.getElementById('form-add-resource').reset();
+
+      renderResourceItems(entity);
+      document.getElementById('modal-resources').classList.remove('hidden');
+    }
+
+    function renderResourceItems(entity) {
+      const container = document.getElementById('resource-items-list');
+      container.innerHTML = '';
+
+      const resources = entity.resources || [];
+      if (resources.length === 0) {
+        container.innerHTML = `<span class="text-slate-500 italic text-xs">No resources linked yet. Paste a YouTube or Instagram link above.</span>`;
+        return;
+      }
+
+      resources.forEach(res => {
+        let badgeIcon = '<i class="fa-solid fa-link text-blue-400"></i>';
+        let badgeLabel = 'WEB';
+        if (res.type === 'youtube' || res.url.includes('youtube.com') || res.url.includes('youtu.be')) {
+          badgeIcon = '<i class="fa-brands fa-youtube text-rose-500"></i>';
+          badgeLabel = 'YOUTUBE';
+        } else if (res.type === 'instagram' || res.url.includes('instagram.com')) {
+          badgeIcon = '<i class="fa-brands fa-instagram text-pink-500"></i>';
+          badgeLabel = 'INSTAGRAM';
+        }
+
+        const el = document.createElement('div');
+        el.className = "p-2.5 rounded-lg bg-[#080c14] border border-[#1e2a42] flex items-center justify-between gap-3";
+        el.innerHTML = `
+          <div class="truncate">
+            <div class="flex items-center gap-1.5">
+              ${badgeIcon}
+              <span class="text-xs font-semibold text-white truncate">${res.title}</span>
+              <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-800 text-slate-400">${badgeLabel}</span>
+            </div>
+            <a href="${res.url}" target="_blank" class="text-[11px] text-blue-400 hover:underline truncate block mt-0.5">${res.url}</a>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <a href="${res.url}" target="_blank" class="px-2 py-1 rounded bg-[#162033] hover:bg-blue-600 hover:text-white text-slate-300 text-[10px] font-mono flex items-center gap-1">
+              Open <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
+            </a>
+            <button onclick="deleteResource('${res.id}')" class="text-slate-500 hover:text-rose-400 text-xs p-1"><i class="fa-regular fa-trash-can"></i></button>
+          </div>
+        `;
+        container.appendChild(el);
+      });
+    }
+
+    function handleCreateResource(e) {
+      e.preventDefault();
+      let entity = null;
+      if (currentResEntityType === 'goal') entity = appState.goals.find(g => g.id === currentResEntityId);
+      else entity = appState.tasks.find(t => t.id === currentResEntityId);
+
+      if (!entity) return;
+
+      const url = document.getElementById('res-input-url').value;
+      let type = 'web';
+      if (url.includes('youtube.com') || url.includes('youtu.be')) type = 'youtube';
+      else if (url.includes('instagram.com')) type = 'instagram';
+
+      const newRes = {
+        id: 'res_' + Date.now(),
+        title: document.getElementById('res-input-title').value,
+        url: url,
+        type: type
+      };
+
+      if (!entity.resources) entity.resources = [];
+      entity.resources.push(newRes);
+      saveAppState();
+      renderResourceItems(entity);
+      renderGoalsAndSystems();
+      renderCommandCenter();
+      document.getElementById('form-add-resource').reset();
+      showToast("Resource Linked", `Saved: "${newRes.title}"`);
+    }
+
+    function deleteResource(resId) {
+      let entity = null;
+      if (currentResEntityType === 'goal') entity = appState.goals.find(g => g.id === currentResEntityId);
+      else entity = appState.tasks.find(t => t.id === currentResEntityId);
+
+      if (!entity) return;
+      entity.resources = entity.resources.filter(r => r.id !== resId);
+      saveAppState();
+      renderResourceItems(entity);
+      renderGoalsAndSystems();
+      renderCommandCenter();
+    }
+
+    function openAIModal() {
+      document.getElementById('modal-ai').classList.remove('hidden');
+    }
+
+    function generateAIPayloadText() {
+      const activeGoals = appState.goals.map(g => `- ${g.name} (${g.area}): ${g.current}/${g.target} ${g.unit}, Deadline: ${g.deadline}, Logs: ${g.notes ? g.notes.length : 0}`).join('\n');
+      const systemsSummary = appState.systems.map(s => `- ${s.name} (${s.cadence}): ${s.completionRate}% completion`).join('\n');
+      const checkin = appState.dailyState.checkin;
+      const rec = appState.recoveryState;
+
+      return `You are the Ruthless Life Execution Auditor for a high-performance personal Life OS.
+Here is the user's live cockpit data:
+
+ACTIVE GOALS:
+${activeGoals}
+
+SUPPORTING SYSTEMS & CURRENT EXECUTION RATES:
+${systemsSummary}
+
+RECOVERY STATE:
+- Protein: ${rec.protein}g / ${rec.proteinTarget}g
+- Hydration: ${rec.water}L / ${rec.waterTarget}L
+- Sleep: ${rec.sleepHours}h (${rec.sleepQuality})
+
+TODAY'S CALIBRATION:
+- Mood: ${checkin.mood}/5 | Energy: ${checkin.energy}/5 | Focus: ${checkin.focus}/5
+- Win: ${checkin.wentWell || "N/A"}
+- Friction: ${checkin.didntWell || "N/A"}
+- Fix: ${checkin.tomorrowFix || "N/A"}
+
+Please generate a 3-part executive diagnostic:
+1. EXECUTION QUALITY AUDIT: Identify the single weakest link or bottleneck.
+2. SYSTEMIC ADJUSTMENTS: Provide exact calibration for lagging systems.
+3. 30-DAY FORECAST: Project trajectory if current velocity persists, and assign a Life OS Readiness Score (out of 100). Keep the tone minimalist, strategic, and direct.`;
+    }
+
+    function copyAIDataPrompt() {
+      const promptText = generateAIPayloadText();
+      const tempTextArea = document.createElement("textarea");
+      tempTextArea.value = promptText;
+      document.body.appendChild(tempTextArea);
+      tempTextArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempTextArea);
+      showToast("Prompt Copied", "Pasted live data to clipboard for ChatGPT / Claude / Gemini.");
+    }
+
+    async function runGeminiAudit() {
+      const responseBox = document.getElementById('ai-response-box');
+      const btn = document.getElementById('btn-call-gemini');
+      
+      responseBox.innerText = "Analyzing life systems, recovery indices, habit adherence matrix, and forecasting future trajectory...";
+      btn.disabled = true;
+      btn.classList.add('opacity-50');
+
+      const userQuery = generateAIPayloadText();
+      const apiKey = ""; // Provided at runtime
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+      try {
+        const payload = {
+          contents: [{ parts: [{ text: userQuery }] }],
+          systemInstruction: {
+            parts: [{ text: "Act as an elite personal systems architect and executive life coach. Provide razor-sharp, actionable critique without fluff." }]
+          }
+        };
+
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        const candidate = data.candidates?.[0];
+        if (candidate && candidate.content?.parts?.[0]?.text) {
+          responseBox.innerText = candidate.content.parts[0].text;
+        } else {
+          responseBox.innerText = "Audit completed. Note: If offline or throttled, click 'Copy Prompt + Live Data' above to run through any LLM.";
+        }
+      } catch (err) {
+        console.error("AI error:", err);
+        responseBox.innerText = "Could not reach live Gemini endpoint. Please click 'Copy Prompt + Live Data' to paste into ChatGPT, Claude, or local model.";
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50');
+      }
+    }
+
+    function generateWeeklyAIPrompt() {
+      openAIModal();
+      runGeminiAudit();
+    }
+
+    function openQuickAddModal(initialTab = 'task', period = 'Morning', preselectedGoalId = null) {
+      document.getElementById('modal-quick-add').classList.remove('hidden');
+      switchQuickAddTab(initialTab);
+      if (initialTab === 'task' && period) {
+        document.getElementById('task-period').value = period;
+      }
+      populateSystemDropdowns();
+      if (preselectedGoalId) {
+        const goalSelect = document.getElementById('system-linked-goal');
+        if (goalSelect) goalSelect.value = preselectedGoalId;
+      }
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function switchQuickAddTab(tab) {
+      ['task', 'habit', 'goal', 'system', 'metric'].forEach(t => {
+        document.getElementById(`qa-tab-${t}`).className = "flex-1 py-2.5 font-medium text-slate-400 hover:text-white";
+        document.getElementById(`form-add-${t}`).classList.add('hidden');
+      });
+      document.getElementById(`qa-tab-${tab}`).className = "flex-1 py-2.5 font-medium text-blue-400 border-b-2 border-blue-500";
+      document.getElementById(`form-add-${tab}`).classList.remove('hidden');
+    }
+
+    function populateSystemDropdowns() {
+      const taskSelect = document.getElementById('task-linked-system');
+      taskSelect.innerHTML = '<option value="">No System Link</option>';
+      appState.systems.forEach(s => {
+        taskSelect.innerHTML += `<option value="${s.id}">${s.name} (${s.area})</option>`;
+      });
+
+      const goalSelect = document.getElementById('system-linked-goal');
+      goalSelect.innerHTML = '';
+      appState.goals.forEach(g => {
+        goalSelect.innerHTML += `<option value="${g.id}">${g.name}</option>`;
+      });
+    }
+
+    function handleCreateTask(e) {
+      e.preventDefault();
+      const newTask = {
+        id: 't_' + Date.now(),
+        name: document.getElementById('task-name').value,
+        area: document.getElementById('task-area').value,
+        period: document.getElementById('task-period').value,
+        time: document.getElementById('task-time').value,
+        priority: document.getElementById('task-priority').value,
+        systemId: document.getElementById('task-linked-system').value,
+        completed: false,
+        resources: []
+      };
+      appState.tasks.push(newTask);
+      saveAppState();
+      closeModal('modal-quick-add');
+      renderAllViews();
+      showToast("Action Scheduled", `"${newTask.name}" added to today's cockpit.`);
+      document.getElementById('form-add-task').reset();
+    }
+
+    function handleCreateHabit(e) {
+      e.preventDefault();
+      const newHabit = {
+        id: 'h_' + Date.now(),
+        name: document.getElementById('habit-name').value,
+        area: document.getElementById('habit-area').value,
+        frequency: document.getElementById('habit-freq').value,
+        time: document.getElementById('habit-reminder-time').value,
+        streak: 0,
+        history: [0, 0, 0, 0, 0, 0, 0]
+      };
+      appState.habits.push(newHabit);
+      saveAppState();
+      closeModal('modal-quick-add');
+      renderHabits();
+      showToast("Habit Formed", `"${newHabit.name}" recurring routine initialized.`);
+      document.getElementById('form-add-habit').reset();
+    }
+
+    function handleCreateGoal(e) {
+      e.preventDefault();
+      const newGoal = {
+        id: 'g_' + Date.now(),
+        name: document.getElementById('goal-name').value,
+        area: document.getElementById('goal-area').value,
+        subcategory: document.getElementById('goal-subcategory').value,
+        target: parseFloat(document.getElementById('goal-target').value),
+        current: parseFloat(document.getElementById('goal-current').value),
+        unit: document.getElementById('goal-unit').value,
+        deadline: document.getElementById('goal-deadline').value,
+        status: 'Active',
+        systems: [],
+        notes: [],
+        resources: []
+      };
+      appState.goals.push(newGoal);
+      saveAppState();
+      closeModal('modal-quick-add');
+      renderGoalsAndSystems();
+      renderHomeActiveGoals();
+      showToast("Goal Committed", `"${newGoal.name}" registered in Life OS.`);
+      document.getElementById('form-add-goal').reset();
+    }
+
+    function handleCreateSystem(e) {
+      e.preventDefault();
+      const newSystem = {
+        id: 's_' + Date.now(),
+        name: document.getElementById('system-name').value,
+        purpose: document.getElementById('system-purpose').value,
+        goalId: document.getElementById('system-linked-goal').value,
+        area: 'P',
+        cadence: document.getElementById('system-cadence').value,
+        completionRate: 100,
+        status: 'Optimal'
+      };
+      appState.systems.push(newSystem);
+      const goal = appState.goals.find(g => g.id === newSystem.goalId);
+      if (goal) goal.systems.push(newSystem.id);
+
+      saveAppState();
+      closeModal('modal-quick-add');
+      renderGoalsAndSystems();
+      showToast("System Anchored", `System linked to "${goal ? goal.name : 'Goal'}".`);
+      document.getElementById('form-add-system').reset();
+    }
+
+    function handleCreateMetric(e) {
+      e.preventDefault();
+      const newMetric = {
+        id: 'm_' + Date.now(),
+        name: document.getElementById('metric-name').value,
+        area: 'P',
+        current: parseFloat(document.getElementById('metric-current').value),
+        target: parseFloat(document.getElementById('metric-target').value),
+        unit: document.getElementById('metric-unit').value,
+        goalId: '',
+        history: [parseFloat(document.getElementById('metric-current').value)]
+      };
+      appState.metrics.push(newMetric);
+      saveAppState();
+      closeModal('modal-quick-add');
+      renderMetrics();
+      showToast("Metric Tracked", `Now measuring "${newMetric.name}".`);
+      document.getElementById('form-add-metric').reset();
+    }
+
+    function logMetricValuePrompt(metricId) {
+      const metric = appState.metrics.find(m => m.id === metricId);
+      if (!metric) return;
+      const val = prompt(`Log new reading for ${metric.name} (${metric.unit}):`, metric.current);
+      if (val !== null && val.trim() !== '') {
+        const num = parseFloat(val);
+        metric.current = num;
+        metric.history.push(num);
+        saveAppState();
+        renderMetrics();
+      }
+    }
+
+    function showToast(title, body, icon = "⚡", actionType = null) {
+      const toast = document.getElementById('reminder-toast');
+      document.getElementById('toast-title').innerText = title;
+      document.getElementById('toast-body').innerText = body;
+      document.getElementById('toast-icon').innerText = icon;
+      toast.classList.remove('hidden');
+
+      if (!actionType) {
+        document.getElementById('toast-actions').classList.add('hidden');
+        setTimeout(() => { dismissToast(); }, 4000);
+      } else {
+        document.getElementById('toast-actions').classList.remove('hidden');
+      }
+    }
+
+    function dismissToast() {
+      document.getElementById('reminder-toast').classList.add('hidden');
+    }
+
+    function toastAction(type) {
+      dismissToast();
+      if (type === 'complete') {
+        showToast("Logged", "Action marked complete.");
+      } else if (type === 'snooze') {
+        showToast("Snoozed", "Reminder rescheduled in 15 minutes.");
+      }
+    }
+
+    function setupReminderClock() {
+      setInterval(() => {
+        const now = new Date();
+        const hrs = now.getHours();
+        const mins = now.getMinutes();
+
+        if (hrs === 21 && mins === 0 && !appState.dailyState.checkin.completed) {
+          showToast("🌙 Time for Daily Check-in", "Take 2 minutes to calibrate and reflect.", "🌙", "checkin");
+          triggerNativeNotification("Life OS: Evening Check-in", "Take 2 minutes to reflect on today's execution.");
+        }
+      }, 60000);
+    }
+
+    function requestNotificationPermission() {
+      if ("Notification" in window) {
+        Notification.requestPermission().then(perm => {
+          if (perm === "granted") {
+            appState.user.notificationsEnabled = true;
+            saveAppState();
+            showToast("Notifications Enabled", "Cockpit alerts will now appear on your device.");
+          }
+        });
+      }
+    }
+
+    function triggerNativeNotification(title, body) {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(title, { body, icon: "⚡" });
+      }
+    }
+
+    function toggleRemindersPanel() {
+      showToast("Notification Center", "All scheduled habits, check-ins, and goal deadlines are active.");
+    }
+
+    function openSettingsModal() {
+      document.getElementById('settings-whatsapp-phone').value = appState.user.whatsappPhone || "";
+      document.getElementById('modal-settings').classList.remove('hidden');
+    }
+
+    document.getElementById('settings-whatsapp-phone')?.addEventListener('change', (e) => {
+      appState.user.whatsappPhone = e.target.value;
+      saveAppState();
+    });
+
+    function exportLifeOSData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `life_os_backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function importLifeOSData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed.goals && parsed.tasks) {
+            appState = parsed;
+            saveAppState();
+            renderAllViews();
+            closeModal('modal-settings');
+            showToast("Database Restored", "Your complete Life OS data has been loaded.");
+          }
+        } catch (err) {
+          showToast("Error", "Invalid Life OS JSON backup file.", "⚠️");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetToSampleData() {
+      const confirmation = prompt("Type 'RESET' to restore the baseline sample data:");
+      if (confirmation === 'RESET') {
+        appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+        saveAppState();
+        renderAllViews();
+        closeModal('modal-settings');
+        showToast("Cockpit Reset", "Sample baseline restored.");
+      }
+    }
+
+    window.onload = function() {
+      initAppState();
+    };
+  </script>
+</body>
+</html>
