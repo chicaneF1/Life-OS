@@ -1,0 +1,3253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Life OS — The Execution Layer</title>
+  <style>
+    :root {
+      --bg: #09090b;
+      --surface: #111113;
+      --surface-elevated: #18181b;
+      --surface-hover: #222227;
+      --border: #27272a;
+      --border-subtle: #1f1f23;
+      --text-primary: #f4f4f5;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      
+      /* Domain accents */
+      --accent-today: #38bdf8;
+      --accent-goals: #10b981;
+      --accent-systems: #f59e0b;
+      --accent-recovery: #06b6d4;
+      --accent-knowledge: #6366f1;
+      --accent-review: #a855f7;
+      
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --success: #10b981;
+
+      --sidebar-width: 240px;
+      --sidebar-collapsed: 68px;
+      --drawer-width: 440px;
+      --header-height: 56px;
+      --bottom-nav-height: 60px;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --transition: 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--font-family);
+      font-size: 14px;
+      line-height: 1.5;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+      color: inherit;
+      background: transparent;
+      border: none;
+      outline: none;
+    }
+
+    button {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background var(--transition), border-color var(--transition), color var(--transition), transform 0.08s ease;
+      user-select: none;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    button:focus-visible, input:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--accent-today);
+      outline-offset: 1px;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    #app {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Desktop Sidebar */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100%;
+      transition: width var(--transition);
+      z-index: 40;
+    }
+
+    .sidebar.collapsed {
+      width: var(--sidebar-collapsed);
+    }
+
+    .sidebar-header {
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .logo-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      background: #1e1e24;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-today);
+      flex-shrink: 0;
+    }
+
+    .logo-title {
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    .collapse-btn {
+      color: var(--text-muted);
+      padding: 6px;
+      border-radius: var(--radius-sm);
+    }
+    .collapse-btn:hover {
+      color: var(--text-primary);
+      background: var(--surface-hover);
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 13px;
+      position: relative;
+      transition: all var(--transition);
+      border-left: 2px solid transparent;
+      white-space: nowrap;
+    }
+
+    .nav-item:hover {
+      background: var(--surface-hover);
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      background: var(--surface-elevated);
+      color: var(--text-primary);
+    }
+
+    .nav-item.active[data-view="today"] { border-left-color: var(--accent-today); }
+    .nav-item.active[data-view="goals"] { border-left-color: var(--accent-goals); }
+    .nav-item.active[data-view="systems"] { border-left-color: var(--accent-systems); }
+    .nav-item.active[data-view="knowledge"] { border-left-color: var(--accent-knowledge); }
+    .nav-item.active[data-view="recovery"] { border-left-color: var(--accent-recovery); }
+    .nav-item.active[data-view="review"] { border-left-color: var(--accent-review); }
+
+    .nav-item .nav-icon {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sidebar.collapsed .nav-text {
+      display: none;
+    }
+    .sidebar.collapsed .nav-item {
+      justify-content: center;
+      padding: 10px 0;
+      border-left: none;
+    }
+    .sidebar.collapsed .nav-item.active {
+      border-radius: var(--radius-sm);
+      outline: 1px solid var(--border);
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: var(--border-subtle);
+      margin: 8px 6px;
+    }
+
+    .sidebar-footer {
+      padding: 12px 8px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .capture-trigger-btn {
+      background: var(--surface-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      font-weight: 600;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .capture-trigger-btn:hover {
+      background: #232328;
+      border-color: #3f3f46;
+    }
+    .sidebar.collapsed .capture-trigger-btn .nav-text {
+      display: none;
+    }
+
+    .main-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .top-bar {
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      z-index: 20;
+    }
+
+    .top-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .header-context-title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .top-bar-metrics {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 12px;
+    }
+
+    .metric-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+    }
+    .metric-chip .val {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .top-bar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-icon-subtle {
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      border: 1px solid transparent;
+      font-size: 12px;
+      background: var(--surface-elevated);
+    }
+    .btn-icon-subtle:hover {
+      color: var(--text-primary);
+      border-color: var(--border);
+    }
+
+    /* Content container */
+    .content-scrollable {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      scroll-behavior: smooth;
+    }
+
+    /* Mobile bottom navigation */
+    .mobile-bottom-nav {
+      display: none;
+      height: var(--bottom-nav-height);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 50;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 0 8px;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .time-engine-banner {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .time-engine-banner::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--accent-today);
+    }
+    .time-phase-tag {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent-today);
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .time-phase-message {
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .time-clock-display {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    /* Grid for Today execution */
+    .execution-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 20px;
+    }
+
+    .section-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .one-thing-card {
+      background: linear-gradient(180deg, #131722 0%, #111113 100%);
+      border: 1px solid #233044;
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+    .one-thing-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-today);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .one-thing-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.35;
+    }
+    .one-thing-context {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .one-thing-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .btn-focus-start {
+      background: var(--accent-today);
+      color: #05131e;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+    }
+    .btn-focus-start:hover {
+      background: #7dd3fc;
+    }
+
+    .btn-outline-done {
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+    }
+    .btn-outline-done:hover {
+      color: var(--text-primary);
+      border-color: var(--success);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .triage-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .triage-header {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .action-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      gap: 12px;
+      transition: background var(--transition), border-color var(--transition);
+    }
+    .action-row:hover {
+      border-color: #3f3f46;
+    }
+    .action-row.done {
+      opacity: 0.45;
+      text-decoration: line-through;
+    }
+    .action-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      overflow: hidden;
+    }
+    .custom-check {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: transparent;
+      background: transparent;
+      transition: all var(--transition);
+    }
+    .custom-check:hover {
+      border-color: var(--accent-today);
+    }
+    .custom-check.checked {
+      background: var(--success);
+      border-color: var(--success);
+      color: #05150f;
+    }
+    .action-name {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .action-badges {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .dim-tag {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 3px;
+      background: #27272a;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+    }
+    .est-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .capacity-banner {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .capacity-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+    }
+    .capacity-bar-track {
+      height: 5px;
+      background: #27272a;
+      border-radius: 3px;
+      overflow: hidden;
+      width: 100%;
+    }
+    .capacity-bar-fill {
+      height: 100%;
+      background: var(--accent-today);
+      width: 60%;
+      transition: width var(--transition);
+    }
+    .capacity-warning {
+      color: var(--warning);
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 500;
+    }
+
+    .alert-card {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .alert-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--warning);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .alert-desc {
+      font-size: 12px;
+      color: var(--text-primary);
+    }
+    .alert-action-btn {
+      align-self: flex-start;
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--warning);
+      font-weight: 600;
+      text-decoration: underline;
+    }
+
+    .quick-input-box {
+      display: flex;
+      gap: 8px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 6px 10px;
+    }
+    .quick-input-box:focus-within {
+      border-color: var(--accent-today);
+    }
+    .quick-input-box input {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+    .quick-input-box input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .item-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      cursor: pointer;
+      transition: all var(--transition);
+      position: relative;
+    }
+    .item-card:hover {
+      border-color: #3f3f46;
+      background: #141417;
+    }
+
+    .card-header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .card-title-lg {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+
+    .progress-bar-container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .progress-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+    }
+    .progress-track {
+      height: 6px;
+      background: #27272a;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent-goals);
+      transition: width var(--transition);
+    }
+
+    .health-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-transform: capitalize;
+    }
+    .health-pill.healthy {
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .health-pill.at_risk {
+      background: rgba(245, 158, 11, 0.12);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .health-pill.lagging {
+      background: rgba(239, 68, 68, 0.12);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+    }
+    .filter-pill {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .filter-pill:hover, .filter-pill.active {
+      color: var(--text-primary);
+      border-color: #52525b;
+      background: var(--surface-elevated);
+    }
+    .filter-pill.active {
+      border-color: var(--accent-knowledge);
+      color: #c7d2fe;
+    }
+
+    .resource-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all var(--transition);
+      cursor: pointer;
+    }
+    .resource-card:hover {
+      border-color: #3f3f46;
+      background: var(--surface-elevated);
+    }
+    .resource-type-tag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent-knowledge);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .resource-source-link {
+      font-size: 11px;
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(2px);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition);
+    }
+    .drawer-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .detail-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: var(--drawer-width);
+      max-width: 100vw;
+      height: 100vh;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      z-index: 101;
+      transform: translateX(100%);
+      transition: transform var(--transition);
+      display: flex;
+      flex-direction: column;
+    }
+    .detail-drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .drawer-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      background: var(--surface-elevated);
+    }
+
+    .detail-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .detail-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .detail-content-box {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      font-size: 13px;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    .onenote-bridge-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: var(--radius-sm);
+      color: #a5b4fc;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .onenote-bridge-btn:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: #818cf8;
+      color: #e0e7ff;
+    }
+
+    .focus-overlay {
+      position: fixed;
+      inset: 0;
+      background: #09090b;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .focus-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .focus-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-align: center;
+      max-width: 600px;
+      padding: 0 20px;
+    }
+    .focus-timer {
+      font-size: 72px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--accent-today);
+      letter-spacing: 0.02em;
+    }
+    .focus-bar-track {
+      width: 320px;
+      height: 8px;
+      background: #18181b;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .focus-bar-fill {
+      height: 100%;
+      background: var(--accent-today);
+      width: 30%;
+      transition: width 1s linear;
+    }
+    .focus-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .trainer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .reaction-target-box {
+      width: 100%;
+      max-width: 480px;
+      height: 220px;
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.1s ease;
+      text-align: center;
+      padding: 16px;
+    }
+    .reaction-target-box.idle {
+      background: #1e1e24;
+      border: 2px dashed #3f3f46;
+      color: var(--text-secondary);
+    }
+    .reaction-target-box.waiting {
+      background: #450a0a;
+      border: 2px solid #ef4444;
+      color: #fca5a5;
+    }
+    .reaction-target-box.ready {
+      background: #064e3b;
+      border: 2px solid #10b981;
+      color: #6ee7b7;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(3px);
+      z-index: 150;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition);
+      padding: 16px;
+    }
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-window {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 540px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.5);
+    }
+
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 300;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: toastSlideIn 0.2s ease-out;
+      pointer-events: auto;
+    }
+    @keyframes toastSlideIn {
+      from { transform: translateY(12px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+      .mobile-bottom-nav {
+        display: flex;
+      }
+      .top-bar {
+        padding: 0 16px;
+      }
+      .content-scrollable {
+        padding: 16px;
+        padding-bottom: calc(var(--bottom-nav-height) + 20px);
+      }
+      .execution-grid {
+        grid-template-columns: 1fr;
+      }
+      .detail-drawer {
+        width: 100vw;
+        height: 85vh;
+        top: auto;
+        bottom: 0;
+        border-radius: 16px 16px 0 0;
+        transform: translateY(100%);
+      }
+      .detail-drawer.open {
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Desktop Sidebar Rail -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-area">
+          <div class="logo-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <span class="logo-title">Life OS</span>
+        </div>
+        <button class="collapse-btn" id="sidebarCollapseBtn" title="Toggle Sidebar [ [ ]">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+          </svg>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-view="today">
+          <span class="nav-icon" id="navIconToday"></span>
+          <span class="nav-text">Today</span>
+        </button>
+        <button class="nav-item" data-view="goals">
+          <span class="nav-icon" id="navIconGoals"></span>
+          <span class="nav-text">Goals</span>
+        </button>
+        <button class="nav-item" data-view="systems">
+          <span class="nav-icon" id="navIconSystems"></span>
+          <span class="nav-text">Systems</span>
+        </button>
+        <button class="nav-item" data-view="knowledge">
+          <span class="nav-icon" id="navIconKnowledge"></span>
+          <span class="nav-text">Knowledge</span>
+        </button>
+        <button class="nav-item" data-view="recovery">
+          <span class="nav-icon" id="navIconRecovery"></span>
+          <span class="nav-text">Recovery</span>
+        </button>
+        <button class="nav-item" data-view="review">
+          <span class="nav-icon" id="navIconReview"></span>
+          <span class="nav-text">Review</span>
+        </button>
+
+        <div class="sidebar-divider"></div>
+
+        <button class="capture-trigger-btn" id="sidebarCaptureBtn">
+          <span id="navIconPlus"></span>
+          <span class="nav-text">+ Capture</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="nav-item" id="globalSearchBtn">
+          <span class="nav-icon" id="navIconSearch"></span>
+          <span class="nav-text">Search (Ctrl+K)</span>
+        </button>
+        <button class="nav-item" data-view="settings">
+          <span class="nav-icon" id="navIconSettings"></span>
+          <span class="nav-text">Settings</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main-workspace">
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <span class="header-context-title" id="cockpitDateTitle">Loading date...</span>
+        </div>
+        <div class="top-bar-metrics">
+          <div class="metric-chip" title="Actions completed today vs planned">
+            <span>Execution</span>
+            <span class="val" id="cockpitExecRate">0%</span>
+          </div>
+          <div class="metric-chip" title="Active attention flags needing review">
+            <span>Attention</span>
+            <span class="val" id="cockpitAttentionCount" style="color:var(--warning)">0</span>
+          </div>
+          <div class="metric-chip" title="Healthy vs At Risk Systems">
+            <span>Systems</span>
+            <span class="val" id="cockpitSystemsStatus">0 healthy</span>
+          </div>
+        </div>
+        <div class="top-bar-actions">
+          <button class="btn-icon-subtle" id="topQuickCaptureBtn" title="Universal Fast Capture">
+            + Fast Capture
+          </button>
+        </div>
+      </header>
+
+      <!-- Scrollable Main View Container -->
+      <div class="content-scrollable" id="mainContentScroll">
+        <!-- Rendered view injected dynamically via JavaScript -->
+      </div>
+
+      <nav class="mobile-bottom-nav">
+        <button class="nav-item" data-view="today" style="flex-direction:column; gap:2px; padding:4px;">
+          <span class="nav-icon" id="mobIconToday"></span>
+          <span style="font-size:10px;">Today</span>
+        </button>
+        <button class="nav-item" data-view="goals" style="flex-direction:column; gap:2px; padding:4px;">
+          <span class="nav-icon" id="mobIconGoals"></span>
+          <span style="font-size:10px;">Goals</span>
+        </button>
+        <button class="nav-item" id="mobCaptureBtn" style="flex-direction:column; gap:2px; padding:4px; color:var(--accent-today);">
+          <span class="nav-icon" id="mobIconPlus"></span>
+          <span style="font-size:10px;">Capture</span>
+        </button>
+        <button class="nav-item" data-view="recovery" style="flex-direction:column; gap:2px; padding:4px;">
+          <span class="nav-icon" id="mobIconRecovery"></span>
+          <span style="font-size:10px;">Recovery</span>
+        </button>
+        <button class="nav-item" data-view="review" style="flex-direction:column; gap:2px; padding:4px;">
+          <span class="nav-icon" id="mobIconReview"></span>
+          <span style="font-size:10px;">Review</span>
+        </button>
+      </nav>
+    </main>
+
+    <!-- Detail Drawer Overlay & Drawer -->
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+    <div class="detail-drawer" id="detailDrawer">
+      <div class="drawer-header">
+        <div id="drawerHeaderTitle" style="font-weight:600; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:80%;">
+          Details
+        </div>
+        <button class="collapse-btn" id="drawerCloseBtn">✕</button>
+      </div>
+      <div class="drawer-body" id="drawerBody">
+        <!-- Injected drawer content -->
+      </div>
+      <div class="drawer-footer" id="drawerFooter">
+        <!-- Injected drawer buttons -->
+      </div>
+    </div>
+
+    <!-- Universal Capture Modal -->
+    <div class="modal-backdrop" id="captureModal">
+      <div class="modal-window">
+        <div class="drawer-header">
+          <div style="display:flex; gap:12px;">
+            <button class="filter-pill active" id="capTabAction">New Action</button>
+            <button class="filter-pill" id="capTabResource">Universal Resource</button>
+          </div>
+          <button class="collapse-btn" id="captureModalClose">✕</button>
+        </div>
+        <div style="padding:20px; display:flex; flex-direction:column; gap:14px;" id="captureModalBody">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Global Search Modal (Ctrl+K) -->
+    <div class="modal-backdrop" id="searchModal">
+      <div class="modal-window" style="max-width: 620px;">
+        <div style="padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+          <span id="searchModalIcon"></span>
+          <input type="text" id="globalSearchInput" placeholder="Search Goals, Systems, Actions, Resources, Knowledge... (Esc to close)" style="width:100%; font-size:15px;" autofocus />
+        </div>
+        <div id="searchResultsList" style="max-height:360px; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:6px;">
+          <!-- Injected Search Results -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Focus Mode Immersive Overlay -->
+    <div class="focus-overlay" id="focusOverlay">
+      <div class="one-thing-badge" style="letter-spacing:0.12em;">FOCUS COCKPIT</div>
+      <div class="focus-title" id="focusActionTitle">Action Name</div>
+      <div class="focus-timer" id="focusTimerDisplay">25:00</div>
+      <div class="focus-bar-track">
+        <div class="focus-bar-fill" id="focusProgressFill"></div>
+      </div>
+      <div class="focus-controls">
+        <button class="btn-outline-done" id="focusPauseBtn">Pause</button>
+        <button class="btn-focus-start" id="focusCompleteBtn">Complete Action</button>
+        <button class="btn-icon-subtle" id="focusExitBtn">Exit Focus</button>
+      </div>
+    </div>
+
+    <!-- Toast message host -->
+    <div class="toast-container" id="toastContainer"></div>
+  </div>
+
+  <script>
+    /* Life OS — The Execution Layer — Vanilla Architecture */
+
+    const ICONS = {
+      today: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
+      goals: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`,
+      systems: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>`,
+      knowledge: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`,
+      recovery: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
+      review: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>`,
+      plus: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+      search: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
+      settings: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`,
+      check: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+      external: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`,
+      onenote: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14.5h-2v-5h2v5zm0-7h-2V7h2v2.5z"/></svg>`
+    };
+
+    function injectIcons() {
+      const mapping = {
+        navIconToday: ICONS.today,
+        navIconGoals: ICONS.goals,
+        navIconSystems: ICONS.systems,
+        navIconKnowledge: ICONS.knowledge,
+        navIconRecovery: ICONS.recovery,
+        navIconReview: ICONS.review,
+        navIconPlus: ICONS.plus,
+        navIconSearch: ICONS.search,
+        navIconSettings: ICONS.settings,
+        mobIconToday: ICONS.today,
+        mobIconGoals: ICONS.goals,
+        mobIconPlus: ICONS.plus,
+        mobIconRecovery: ICONS.recovery,
+        mobIconReview: ICONS.review,
+        searchModalIcon: ICONS.search
+      };
+      for (const [id, svg] of Object.entries(mapping)) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = svg;
+      }
+    }
+
+    const DB_NAME = "LifeOS_ExecutionLayer_DB";
+    const DB_VERSION = 1;
+    let db = null;
+
+    function initDB() {
+      return new Promise((resolve) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+          const database = e.target.result;
+          if (!database.objectStoreNames.contains("state")) {
+            database.createObjectStore("state", { keyPath: "key" });
+          }
+        };
+        request.onsuccess = (e) => {
+          db = e.target.result;
+          resolve(db);
+        };
+        request.onerror = () => {
+          console.warn("IndexedDB unavailable, falling back to localStorage.");
+          resolve(null);
+        };
+      });
+    }
+
+    async function loadStoredState() {
+      if (!db) {
+        const fallback = localStorage.getItem("LIFE_OS_DATA");
+        return fallback ? JSON.parse(fallback) : null;
+      }
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction("state", "readonly");
+          const store = tx.objectStore("state");
+          const req = store.get("app_state");
+          req.onsuccess = () => resolve(req.result ? req.result.value : null);
+          req.onerror = () => resolve(null);
+        } catch {
+          resolve(null);
+        }
+      });
+    }
+
+    async function saveAppState() {
+      if (!db) {
+        localStorage.setItem("LIFE_OS_DATA", JSON.stringify(appState));
+        return;
+      }
+      try {
+        const tx = db.transaction("state", "readwrite");
+        const store = tx.objectStore("state");
+        store.put({ key: "app_state", value: appState });
+      } catch (err) {
+        console.error("Save error:", err);
+      }
+    }
+
+    const defaultState = {
+      activeView: "today",
+      sidebarCollapsed: false,
+      capacityAvailableMinutes: 330, // 5h 30m
+      oneThingActionId: "act_easy_run",
+      goals: [
+        {
+          id: "goal_half_marathon",
+          name: "Run Half Marathon — 21.1 km",
+          dimension: "P",
+          targetValue: 21.1,
+          currentValue: 12.4,
+          unit: "km",
+          deadline: "2026-09-30",
+          why: "Build cardiovascular endurance, mental resilience, and complete my first official half marathon.",
+          nextAction: "8 km easy run with cadence drill",
+          systemIds: ["sys_running", "sys_mobility", "sys_recovery", "sys_fueling"],
+          milestones: [
+            { id: "m1", label: "5 km continuous pace", done: true },
+            { id: "m2", label: "10 km sub-60m", done: true },
+            { id: "m3", label: "15 km long test run", done: false },
+            { id: "m4", label: "18 km rehearsal run", done: false },
+            { id: "m5", label: "21.1 km Half Marathon Race", done: false }
+          ],
+          oneNoteUrl: "onenote:https://d.docs.live.net/marathon_vault",
+          notesTimeline: [
+            { date: "2026-09-20", text: "Logged 12.4 km long run. Hip flexor tightness after km 9." }
+          ]
+        },
+        {
+          id: "goal_product_strategy",
+          name: "Complete Q4 Product Architecture Spec",
+          dimension: "I",
+          targetValue: 100,
+          currentValue: 65,
+          unit: "%",
+          deadline: "2026-10-15",
+          why: "Solidify core engineering deliverables and align cross-functional teams.",
+          nextAction: "Draft API contracts and data schemas",
+          systemIds: ["sys_deepwork"],
+          milestones: [
+            { id: "p1", label: "Problem discovery doc", done: true },
+            { id: "p2", label: "Architecture spike", done: true },
+            { id: "p3", label: "Cross-team RFC review", done: false }
+          ],
+          oneNoteUrl: "",
+          notesTimeline: []
+        }
+      ],
+      systems: [
+        {
+          id: "sys_running",
+          name: "Running Cadence & Technique",
+          frequency: "3× / week",
+          health: "healthy",
+          goalIds: ["goal_half_marathon"],
+          experiment: {
+            hypothesis: "Focusing on 175-180 SPM cadence reduces ground impact stress.",
+            duration: "14 days",
+            result: "Knee discomfort decreased; pace remained stable.",
+            decision: "Keep"
+          }
+        },
+        {
+          id: "sys_mobility",
+          name: "Joint & Ankle Mobility Routine",
+          frequency: "Daily / 10 min",
+          health: "healthy",
+          goalIds: ["goal_half_marathon"],
+          experiment: {
+            hypothesis: "Doing mobility immediately after teeth brushing will improve consistency.",
+            duration: "7 days",
+            result: "6 / 7 completed",
+            decision: "Keep"
+          }
+        },
+        {
+          id: "sys_recovery",
+          name: "Sleep & Circadian Alignment",
+          frequency: "Nightly 7.5h+",
+          health: "at_risk",
+          goalIds: ["goal_half_marathon"],
+          experiment: null
+        },
+        {
+          id: "sys_fueling",
+          name: "Fueling & Hydration Discipline",
+          frequency: "Daily targets",
+          health: "healthy",
+          goalIds: ["goal_half_marathon"],
+          experiment: null
+        },
+        {
+          id: "sys_deepwork",
+          name: "Morning Deep Work Protocol",
+          frequency: "Mon-Fri 9-11 AM",
+          health: "healthy",
+          goalIds: ["goal_product_strategy"],
+          experiment: null
+        }
+      ],
+      actions: [
+        {
+          id: "act_easy_run",
+          name: "8 km easy run (Zone 2) with cadence drill",
+          status: "in_progress",
+          priority: "now",
+          scheduledDate: "2026-09-24",
+          estimatedMinutes: 55,
+          goalId: "goal_half_marathon",
+          systemId: "sys_running",
+          dimension: "P",
+          completedAt: null
+        },
+        {
+          id: "act_ankle_mobility",
+          name: "10-minute ankle and hip mobility routine",
+          status: "next",
+          priority: "next",
+          scheduledDate: "2026-09-24",
+          estimatedMinutes: 10,
+          goalId: "goal_half_marathon",
+          systemId: "sys_mobility",
+          dimension: "P",
+          completedAt: null
+        },
+        {
+          id: "act_protein",
+          name: "Reach 140g protein daily target",
+          status: "later",
+          priority: "later",
+          scheduledDate: "2026-09-24",
+          estimatedMinutes: 15,
+          goalId: "goal_half_marathon",
+          systemId: "sys_fueling",
+          dimension: "P",
+          completedAt: null
+        },
+        {
+          id: "act_product_doc",
+          name: "Draft API contracts schema in OneNote notes",
+          status: "next",
+          priority: "next",
+          scheduledDate: "2026-09-24",
+          estimatedMinutes: 90,
+          goalId: "goal_product_strategy",
+          systemId: "sys_deepwork",
+          dimension: "I",
+          completedAt: null
+        },
+        {
+          id: "act_sunlight",
+          name: "15 min morning sunlight & hydration",
+          status: "done",
+          priority: "now",
+          scheduledDate: "2026-09-24",
+          estimatedMinutes: 15,
+          goalId: "goal_half_marathon",
+          systemId: "sys_recovery",
+          dimension: "P",
+          completedAt: "2026-09-24T07:40:00"
+        }
+      ],
+      resources: [
+        {
+          id: "res_form_video",
+          title: "How to Improve Running Form & Prevent Overstriding",
+          type: "youtube",
+          url: "https://www.youtube.com/watch?v=running_form_mistakes",
+          thumbnailUrl: "",
+          sourceName: "YouTube",
+          capturedAt: "2026-09-22",
+          goalIds: ["goal_half_marathon"],
+          systemIds: ["sys_running"],
+          noteIds: [],
+          oneNoteUrl: "onenote:https://d.docs.live.net/marathon_vault#FormNotes",
+          personalNote: "Relax shoulders and avoid reaching ahead of center of gravity.",
+          insight: "I tend to overstride when fatigued, landing hard on the heel.",
+          systemChange: "Add cadence drill twice per week.",
+          status: "linked",
+          tags: ["Technique", "Training"]
+        },
+        {
+          id: "res_breathing_vid",
+          title: "Rhythmic Breathing Patterns for Endurance",
+          type: "youtube",
+          url: "https://youtube.com/watch?v=breathing_technique",
+          thumbnailUrl: "",
+          sourceName: "YouTube",
+          capturedAt: "2026-09-21",
+          goalIds: ["goal_half_marathon"],
+          systemIds: ["sys_running"],
+          noteIds: [],
+          oneNoteUrl: "",
+          personalNote: "Try 3:2 inhale-exhale pattern on tempo runs.",
+          insight: "Prevents diaphragm cramping during pace surges.",
+          systemChange: "",
+          status: "linked",
+          tags: ["Breathing", "Technique"]
+        },
+        {
+          id: "res_plan_screenshot",
+          title: "Hal Higdon Half Marathon Week 8-12 Matrix",
+          type: "screenshot",
+          url: "",
+          thumbnailUrl: "",
+          sourceName: "Training Plan Screenshot",
+          capturedAt: "2026-09-18",
+          goalIds: ["goal_half_marathon"],
+          systemIds: ["sys_running"],
+          noteIds: [],
+          oneNoteUrl: "",
+          personalNote: "Week 10 is the peak 18km test before taper.",
+          insight: "",
+          systemChange: "",
+          status: "linked",
+          tags: ["Training", "Reference"]
+        },
+        {
+          id: "res_fueling_article",
+          title: "Intra-run Carbohydrate & Electrolyte Strategies",
+          type: "website",
+          url: "https://runnersworld.com/marathon-fueling-science",
+          thumbnailUrl: "",
+          sourceName: "Runner's World",
+          capturedAt: "2026-09-15",
+          goalIds: ["goal_half_marathon"],
+          systemIds: ["sys_fueling"],
+          noteIds: [],
+          oneNoteUrl: "",
+          personalNote: "Take 30g carb gel every 45 mins with water.",
+          insight: "",
+          systemChange: "",
+          status: "unreviewed",
+          tags: ["Fueling"]
+        },
+        {
+          id: "res_running_doc",
+          title: "The Barkley Marathons: The Race That Eats Its Young",
+          type: "documentary",
+          url: "https://netflix.com/title/barkley",
+          thumbnailUrl: "",
+          sourceName: "Documentary",
+          capturedAt: "2026-09-10",
+          goalIds: ["goal_half_marathon"],
+          systemIds: [],
+          noteIds: [],
+          oneNoteUrl: "",
+          personalNote: "Pure mental resilience masterclass. Reminder: suffering is normal.",
+          insight: "",
+          systemChange: "",
+          status: "linked",
+          tags: ["Inspiration"]
+        }
+      ],
+      recovery: {
+        sleepHours: "7h 12m",
+        sleepQuality: 4,
+        bedtimeConsistency: "Good (23:15)",
+        waterLiters: 2.0,
+        waterTarget: 3.0,
+        proteinGrams: 98,
+        proteinTarget: 140,
+        sunlightMinutes: 15,
+        mobilityCompleted: true,
+        reactionHistory: [218, 204, 235, 198, 222]
+      },
+      reviewNotes: {
+        worked: "Morning runs before meetings feel effortless once out the door.",
+        didntWork: "Late night phone use pushed bedtime past 23:30 on Tuesday.",
+        learned: "Cadence focus immediately drops perceived effort on hill climbs.",
+        stop: "Checking work email during the 15-minute recovery walk.",
+        start: "Doing ankle mobility before dinner if missed in the morning.",
+        nextWeekFocus: "Execute the 18 km milestone rehearsal run."
+      }
+    };
+
+    let appState = JSON.parse(JSON.stringify(defaultState));
+
+    function showToast(message, duration = 2800) {
+      const container = document.getElementById("toastContainer");
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.innerHTML = `
+        <span style="color:var(--accent-today);">${ICONS.check}</span>
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(10px)";
+        toast.style.transition = "all 0.2s ease";
+        setTimeout(() => toast.remove(), 200);
+      }, duration);
+    }
+
+    function getTimeOfDayEngine() {
+      const hour = new Date().getHours();
+      if (hour >= 9 && hour < 12) {
+        return { phase: "Morning Deep Work", desc: "Protect your highest cognitive window. Zero distractions." };
+      } else if (hour >= 12 && hour < 15) {
+        return { phase: "Mid-Day Execution", desc: "Execute priority deliverables and clear operational friction." };
+      } else if (hour >= 15 && hour < 21) {
+        return { phase: "Afternoon Flow / Training", desc: "Physical output, collaborative syncs, and system maintenance." };
+      } else {
+        return { phase: "Evening Reset", desc: "Wind down, log recovery metrics, and prime tomorrow's ONE thing." };
+      }
+    }
+
+    function updateCockpitBar() {
+      // Date title
+      const dateEl = document.getElementById("cockpitDateTitle");
+      const now = new Date();
+      const options = { weekday: "long", day: "numeric", month: "short" };
+      dateEl.textContent = now.toLocaleDateString("en-US", options);
+
+      // Execution % (today's actions)
+      const actionsToday = appState.actions.filter(a => a.scheduledDate === "2026-09-24" || true);
+      const doneCount = actionsToday.filter(a => a.status === "done").length;
+      const totalCount = actionsToday.length;
+      const rate = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+      document.getElementById("cockpitExecRate").textContent = `${rate}%`;
+
+      // Attention flags calculation
+      let attentionFlags = 0;
+      const laggingSystems = appState.systems.filter(s => s.health !== "healthy").length;
+      attentionFlags += laggingSystems;
+      // Stale or deadline goals
+      const goalsNearDeadline = appState.goals.filter(g => {
+        const days = Math.ceil((new Date(g.deadline) - now) / (1000 * 60 * 60 * 24));
+        return days <= 7;
+      }).length;
+      attentionFlags += goalsNearDeadline;
+      document.getElementById("cockpitAttentionCount").textContent = attentionFlags;
+
+      // Systems status
+      const healthyCount = appState.systems.filter(s => s.health === "healthy").length;
+      const atRiskCount = appState.systems.length - healthyCount;
+      document.getElementById("cockpitSystemsStatus").textContent = 
+        atRiskCount > 0 ? `${healthyCount} healthy · ${atRiskCount} at risk` : `${healthyCount} healthy`;
+    }
+
+    function renderTodayView() {
+      const timeEngine = getTimeOfDayEngine();
+      const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // Daily capacity calculations
+      const plannedMinutes = appState.actions
+        .filter(a => a.status !== "done")
+        .reduce((sum, a) => sum + (a.estimatedMinutes || 0), 0);
+      const availableMinutes = appState.capacityAvailableMinutes || 330;
+      const bufferMinutes = availableMinutes - plannedMinutes;
+      const capPercent = Math.min(100, Math.round((plannedMinutes / availableMinutes) * 100));
+
+      // The ONE Thing lookup
+      const oneThing = appState.actions.find(a => a.id === appState.oneThingActionId) || appState.actions[0];
+      const oneThingGoal = oneThing ? appState.goals.find(g => g.id === oneThing.goalId) : null;
+      const oneThingSystem = oneThing ? appState.systems.find(s => s.id === oneThing.systemId) : null;
+
+      // Triage groups
+      const nowActions = appState.actions.filter(a => a.priority === "now");
+      const nextActions = appState.actions.filter(a => a.priority === "next");
+      const laterActions = appState.actions.filter(a => a.priority === "later");
+
+      return `
+        <!-- Time-of-day contextual banner -->
+        <div class="time-engine-banner">
+          <div>
+            <div class="time-phase-tag">${timeEngine.phase}</div>
+            <div class="time-phase-message">${timeEngine.desc}</div>
+          </div>
+          <div class="time-clock-display">${nowTimeStr}</div>
+        </div>
+
+        <div class="execution-grid">
+          <!-- Left Column: The ONE Thing + NOW / NEXT / LATER -->
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            <!-- THE ONE THING -->
+            <div class="one-thing-card">
+              <div class="one-thing-badge">
+                <span>⚡</span>
+                <span>The ONE Thing</span>
+              </div>
+              <div class="one-thing-title">${oneThing ? escapeHtml(oneThing.name) : "No primary target selected"}</div>
+              <div class="one-thing-context">
+                ${oneThingGoal ? `<span>Goal: <strong>${escapeHtml(oneThingGoal.name)}</strong></span>` : ''}
+                ${oneThingSystem ? `<span>System: <strong>${escapeHtml(oneThingSystem.name)}</strong></span>` : ''}
+                ${oneThing ? `<span>⏱ ${oneThing.estimatedMinutes}m</span>` : ''}
+              </div>
+              <div class="one-thing-actions">
+                ${oneThing ? `
+                  <button class="btn-focus-start" onclick="startFocusMode('${oneThing.id}')">
+                    START FOCUS
+                  </button>
+                  <button class="btn-outline-done" onclick="toggleActionComplete('${oneThing.id}')">
+                    ${oneThing.status === 'done' ? 'Reopen' : 'Mark Completed'}
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+
+            <!-- Fast Action Capture -->
+            <div class="quick-input-box">
+              <input type="text" id="quickActionInput" placeholder="Quick action (e.g., '10 min hip stretches #P @4pm'). Enter to save..." onkeydown="handleQuickActionKey(event)">
+              <button class="btn-icon-subtle" onclick="submitQuickAction()" style="background:var(--border);">Add</button>
+            </div>
+
+            <!-- Triage: NOW / NEXT / LATER -->
+            <div class="section-card">
+              <div class="section-header">
+                <span class="section-title">Execution Queue</span>
+                <span style="font-size:11px; color:var(--text-muted);">${appState.actions.filter(a => a.status === 'done').length} of ${appState.actions.length} completed</span>
+              </div>
+
+              <!-- NOW -->
+              <div class="triage-group">
+                <div class="triage-header">
+                  <span>Now · Immediate Focus</span>
+                  <span>${nowActions.length}</span>
+                </div>
+                ${nowActions.map(renderActionRow).join("")}
+              </div>
+
+              <!-- NEXT -->
+              <div class="triage-group" style="margin-top:8px;">
+                <div class="triage-header">
+                  <span>Next · Ready for Execution</span>
+                  <span>${nextActions.length}</span>
+                </div>
+                ${nextActions.map(renderActionRow).join("")}
+              </div>
+
+              <!-- LATER -->
+              <div class="triage-group" style="margin-top:8px;">
+                <div class="triage-header">
+                  <span>Later · Low Drag Buffer</span>
+                  <span>${laterActions.length}</span>
+                </div>
+                ${laterActions.map(renderActionRow).join("")}
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Attention Engine + Capacity -->
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            <!-- Capacity Cockpit -->
+            <div class="section-card">
+              <div class="section-header">
+                <span class="section-title">Daily Capacity</span>
+                <span style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted);">${formatMins(plannedMinutes)} / ${formatMins(availableMinutes)}</span>
+              </div>
+              <div class="capacity-banner">
+                <div class="capacity-stats">
+                  <span>Planned: ${formatMins(plannedMinutes)}</span>
+                  <span>Available: ${formatMins(availableMinutes)}</span>
+                  <span>Buffer: ${bufferMinutes >= 0 ? formatMins(bufferMinutes) : '-' + formatMins(Math.abs(bufferMinutes))}</span>
+                </div>
+                <div class="capacity-bar-track">
+                  <div class="capacity-bar-fill" style="width:${Math.min(100, capPercent)}%; background:${bufferMinutes < 0 ? 'var(--danger)' : 'var(--accent-today)'};"></div>
+                </div>
+                ${bufferMinutes < 0 ? `
+                  <div class="capacity-warning">
+                    ⚠ Planned workload exceeds capacity by ${formatMins(Math.abs(bufferMinutes))}. Consider deferring lower priority tasks.
+                  </div>
+                ` : `
+                  <div style="font-size:11px; color:var(--text-muted);">
+                    ✓ Capacity healthy. ${formatMins(bufferMinutes)} buffer preserved for unexpected cognitive friction.
+                  </div>
+                `}
+              </div>
+            </div>
+
+            <!-- Attention Engine -->
+            <div class="section-card">
+              <div class="section-header">
+                <span class="section-title">Attention Engine</span>
+                <span class="health-pill at_risk">Live</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <div class="alert-card">
+                  <div class="alert-header">
+                    <span>⚠</span>
+                    <span>Goal Deadline Approaching</span>
+                  </div>
+                  <div class="alert-desc">
+                    <strong>Run Half Marathon — 21.1 km</strong> target deadline is 30 Sep (6 days remaining). 18 km milestone unfulfilled.
+                  </div>
+                  <button class="alert-action-btn" onclick="openGoalDetail('goal_half_marathon')">
+                    Inspect Goal & Resources →
+                  </button>
+                </div>
+
+                <div class="alert-card" style="background:rgba(239, 68, 68, 0.08); border-color:rgba(239, 68, 68, 0.25);">
+                  <div class="alert-header" style="color:var(--danger);">
+                    <span>⚠</span>
+                    <span>Lagging System Health</span>
+                  </div>
+                  <div class="alert-desc">
+                    <strong>Sleep & Circadian Alignment</strong> flagged at risk. Average sleep recorded at 7h 12m vs 7.5h target.
+                  </div>
+                  <button class="alert-action-btn" style="color:var(--danger);" onclick="switchView('recovery')">
+                    Review Recovery Log →
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderActionRow(action) {
+      const isDone = action.status === "done";
+      return `
+        <div class="action-row ${isDone ? 'done' : ''}">
+          <div class="action-left">
+            <button class="custom-check ${isDone ? 'checked' : ''}" onclick="toggleActionComplete('${action.id}')" title="${isDone ? 'Reopen' : 'Complete'}">
+              ${isDone ? ICONS.check : ''}
+            </button>
+            <span class="action-name" onclick="openActionDetail('${action.id}')" title="Click to view details">${escapeHtml(action.name)}</span>
+          </div>
+          <div class="action-badges">
+            <span class="dim-tag">${action.dimension || 'P'}</span>
+            <span class="est-time">${action.estimatedMinutes || 15}m</span>
+            <button class="btn-icon-subtle" style="padding:2px 6px; font-size:11px;" onclick="setAsOneThing('${action.id}')" title="Set as The ONE Thing">⚡</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderGoalsView() {
+      return `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <div>
+            <h2 style="font-size:20px; font-weight:700;">Active Goals</h2>
+            <p style="color:var(--text-secondary); font-size:13px;">Progressive outcomes tied directly to repeatable systems and actionable resources.</p>
+          </div>
+          <button class="btn-icon-subtle" onclick="promptNewGoal()" style="background:var(--accent-goals); color:#051a11; font-weight:600;">+ New Goal</button>
+        </div>
+
+        <div class="card-grid">
+          ${appState.goals.map(goal => {
+            const pct = Math.min(100, Math.round((goal.currentValue / goal.targetValue) * 100));
+            const linkedSystems = appState.systems.filter(s => goal.systemIds.includes(s.id));
+            const linkedResources = appState.resources.filter(r => r.goalIds && r.goalIds.includes(goal.id));
+            
+            return `
+              <div class="item-card" onclick="openGoalDetail('${goal.id}')">
+                <div class="card-header-row">
+                  <span class="dim-tag">${goal.dimension}</span>
+                  <span style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted);">Due ${goal.deadline}</span>
+                </div>
+                <div class="card-title-lg">${escapeHtml(goal.name)}</div>
+                <div style="font-size:12px; color:var(--text-secondary); font-style:italic;">"${escapeHtml(goal.why)}"</div>
+
+                <!-- Progress Bar -->
+                <div class="progress-bar-container">
+                  <div class="progress-labels">
+                    <span>${goal.currentValue} / ${goal.targetValue} ${goal.unit}</span>
+                    <span>${pct}%</span>
+                  </div>
+                  <div class="progress-track">
+                    <div class="progress-fill" style="width:${pct}%;"></div>
+                  </div>
+                </div>
+
+                <!-- Next Action Callout -->
+                <div style="background:var(--surface-elevated); padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--border);">
+                  <div style="font-size:10px; text-transform:uppercase; color:var(--accent-goals); font-weight:700;">Next Action</div>
+                  <div style="font-size:12px; color:var(--text-primary); font-weight:500;">${escapeHtml(goal.nextAction || 'None defined')}</div>
+                </div>
+
+                <!-- Associated summary counts -->
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted); border-top:1px solid var(--border-subtle); padding-top:8px;">
+                  <span>${linkedSystems.length} Systems</span>
+                  <span>${linkedResources.length} Resources</span>
+                  ${goal.oneNoteUrl ? `<span style="color:#818cf8;">OneNote ↗</span>` : ''}
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    function renderSystemsView() {
+      return `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <div>
+            <h2 style="font-size:20px; font-weight:700;">Behavioral Systems</h2>
+            <p style="color:var(--text-secondary); font-size:13px;">Repeatable operating loops that drive goal realization. Refine the system when friction occurs.</p>
+          </div>
+          <button class="btn-icon-subtle" onclick="promptNewSystem()" style="background:var(--accent-systems); color:#1a1005; font-weight:600;">+ New System</button>
+        </div>
+
+        <div class="card-grid">
+          ${appState.systems.map(system => {
+            const linkedResources = appState.resources.filter(r => r.systemIds && r.systemIds.includes(system.id));
+            const linkedActions = appState.actions.filter(a => a.systemId === system.id);
+
+            return `
+              <div class="item-card" onclick="openSystemDetail('${system.id}')">
+                <div class="card-header-row">
+                  <span class="health-pill ${system.health}">${system.health.replace('_', ' ')}</span>
+                  <span style="font-size:12px; font-family:var(--font-mono); color:var(--text-secondary);">${system.frequency}</span>
+                </div>
+                <div class="card-title-lg">${escapeHtml(system.name)}</div>
+
+                <!-- Linked Actions Preview -->
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                  <span style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Operating Actions</span>
+                  <div style="font-size:12px; color:var(--text-secondary);">
+                    ${linkedActions.slice(0, 2).map(a => `• ${escapeHtml(a.name)}`).join("<br>") || 'No active actions'}
+                  </div>
+                </div>
+
+                <!-- Active Experiment Pill if any -->
+                ${system.experiment ? `
+                  <div style="background:rgba(245, 158, 11, 0.08); border:1px solid rgba(245, 158, 11, 0.2); border-radius:var(--radius-sm); padding:8px 10px;">
+                    <div style="font-size:10px; color:var(--accent-systems); font-weight:700; text-transform:uppercase;">Active Experiment (${system.experiment.duration})</div>
+                    <div style="font-size:11px; color:var(--text-primary);">${escapeHtml(system.experiment.hypothesis)}</div>
+                  </div>
+                ` : ''}
+
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted); border-top:1px solid var(--border-subtle); padding-top:8px;">
+                  <span>${linkedResources.length} Attached Resources</span>
+                  <span style="color:var(--accent-systems);">Configure Loop →</span>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    let currentResourceFilter = "all";
+
+    function renderKnowledgeView() {
+      let filtered = appState.resources;
+      if (currentResourceFilter !== "all") {
+        if (["unreviewed", "linked", "archived"].includes(currentResourceFilter)) {
+          filtered = filtered.filter(r => r.status === currentResourceFilter);
+        } else {
+          filtered = filtered.filter(r => r.type === currentResourceFilter);
+        }
+      }
+
+      return `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div>
+            <h2 style="font-size:20px; font-weight:700;">Resource Inbox & Knowledge Vault</h2>
+            <p style="color:var(--text-secondary); font-size:13px;">External inputs captured once, linked to execution, and referenced in OneNote.</p>
+          </div>
+          <button class="btn-icon-subtle" onclick="openCaptureModal('resource')" style="background:var(--accent-knowledge); color:#ffffff; font-weight:600;">+ Save Resource</button>
+        </div>
+
+        <!-- Filter Pill Bar -->
+        <div class="filter-bar">
+          <button class="filter-pill ${currentResourceFilter === 'all' ? 'active' : ''}" onclick="setResourceFilter('all')">All (${appState.resources.length})</button>
+          <button class="filter-pill ${currentResourceFilter === 'unreviewed' ? 'active' : ''}" onclick="setResourceFilter('unreviewed')">Unreviewed</button>
+          <button class="filter-pill ${currentResourceFilter === 'linked' ? 'active' : ''}" onclick="setResourceFilter('linked')">Linked to Execution</button>
+          <button class="filter-pill ${currentResourceFilter === 'youtube' ? 'active' : ''}" onclick="setResourceFilter('youtube')">YouTube</button>
+          <button class="filter-pill ${currentResourceFilter === 'website' ? 'active' : ''}" onclick="setResourceFilter('website')">Articles / Web</button>
+          <button class="filter-pill ${currentResourceFilter === 'screenshot' ? 'active' : ''}" onclick="setResourceFilter('screenshot')">Screenshots</button>
+          <button class="filter-pill ${currentResourceFilter === 'documentary' ? 'active' : ''}" onclick="setResourceFilter('documentary')">Documentaries</button>
+        </div>
+
+        <div class="card-grid">
+          ${filtered.map(res => {
+            const linkedGoal = appState.goals.find(g => res.goalIds && res.goalIds.includes(g.id));
+            const linkedSystem = appState.systems.find(s => res.systemIds && res.systemIds.includes(s.id));
+
+            return `
+              <div class="resource-card" onclick="openResourceDetail('${res.id}')">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="resource-type-tag">
+                    <span>◈</span>
+                    <span>${res.type}</span>
+                  </span>
+                  <span style="font-size:11px; color:var(--text-muted);">${res.capturedAt}</span>
+                </div>
+                <div style="font-size:14px; font-weight:600; line-height:1.35; color:var(--text-primary);">${escapeHtml(res.title)}</div>
+                
+                ${res.url ? `<div class="resource-source-link">${escapeHtml(res.url)}</div>` : ''}
+
+                ${res.insight ? `
+                  <div style="background:var(--surface-elevated); border-left:2px solid var(--accent-knowledge); padding:6px 10px; font-size:12px; color:var(--text-secondary);">
+                    <strong>Insight:</strong> ${escapeHtml(res.insight)}
+                  </div>
+                ` : ''}
+
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+                  ${linkedGoal ? `<span class="dim-tag" style="background:#064e3b; color:#6ee7b7;">Goal: ${escapeHtml(linkedGoal.name.substring(0, 18))}...</span>` : ''}
+                  ${linkedSystem ? `<span class="dim-tag" style="background:#451a03; color:#fcd34d;">System: ${escapeHtml(linkedSystem.name.substring(0, 16))}...</span>` : ''}
+                  ${res.oneNoteUrl ? `<span class="dim-tag" style="background:#312e81; color:#c7d2fe;">OneNote Link</span>` : ''}
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    function setResourceFilter(f) {
+      currentResourceFilter = f;
+      renderCurrentView();
+    }
+
+    function renderRecoveryView() {
+      const rec = appState.recovery;
+      const history = rec.reactionHistory || [];
+      const avg = history.length > 0 ? Math.round(history.reduce((a, b) => a + b, 0) / history.length) : 0;
+      const best = history.length > 0 ? Math.min(...history) : 0;
+
+      return `
+        <div style="margin-bottom:20px;">
+          <h2 style="font-size:20px; font-weight:700;">Recovery & Physiological Calibration</h2>
+          <p style="color:var(--text-secondary); font-size:13px;">Transparent physical inputs that dictate cognitive capacity and physical endurance.</p>
+        </div>
+
+        <div class="execution-grid">
+          <!-- Left: Metrics Dashboard -->
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="section-card">
+              <span class="section-title">Physiological Baseline</span>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:8px;">
+                <div style="background:var(--surface-elevated); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border);">
+                  <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Sleep Duration</div>
+                  <div style="font-size:18px; font-weight:700; font-family:var(--font-mono); color:var(--accent-recovery);">${rec.sleepHours}</div>
+                  <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">Quality: ★★★★☆</div>
+                </div>
+
+                <div style="background:var(--surface-elevated); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border);">
+                  <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Protein Synthesis</div>
+                  <div style="font-size:18px; font-weight:700; font-family:var(--font-mono); color:var(--text-primary);">${rec.proteinGrams} / ${rec.proteinTarget} g</div>
+                  <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">Target: 140g</div>
+                </div>
+
+                <div style="background:var(--surface-elevated); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border);">
+                  <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Hydration Volume</div>
+                  <div style="font-size:18px; font-weight:700; font-family:var(--font-mono); color:var(--accent-today);">${rec.waterLiters} L</div>
+                  <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">Target: ${rec.waterTarget} L</div>
+                </div>
+
+                <div style="background:var(--surface-elevated); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border);">
+                  <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Circadian Sunlight</div>
+                  <div style="font-size:18px; font-weight:700; font-family:var(--font-mono); color:var(--warning);">${rec.sunlightMinutes} mins</div>
+                  <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">Target: 15-20 mins</div>
+                </div>
+              </div>
+
+              <div style="display:flex; gap:10px; margin-top:6px;">
+                <button class="btn-icon-subtle" onclick="logWater()" style="flex:1;">+0.5L Water</button>
+                <button class="btn-icon-subtle" onclick="logProtein()" style="flex:1;">+25g Protein</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Reaction Speed Mini-Game -->
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="trainer-card">
+              <div style="width:100%; display:flex; justify-content:space-between; align-items:center;">
+                <span class="section-title">Reaction Trainer</span>
+                <span style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted);">Session Avg: ${avg} ms · Best: ${best} ms</span>
+              </div>
+
+              <!-- Clickable Target Box -->
+              <div class="reaction-target-box idle" id="reactionBox" onclick="handleReactionBoxClick()">
+                <div id="reactionMainText">Click to Start 5-Round Calibration</div>
+                <div id="reactionSubText" style="font-size:12px; font-weight:normal; margin-top:6px; color:inherit;">Measures neuromuscular recovery & CNS readiness</div>
+              </div>
+
+              <div style="display:flex; gap:6px; font-size:11px; font-family:var(--font-mono); color:var(--text-muted);" id="reactionRoundsLog">
+                Recent: ${history.map(ms => `<span>${ms}ms</span>`).join(" · ")}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    let reactionState = "idle"; // "idle" | "waiting" | "ready" | "result"
+    let reactionStartTime = 0;
+    let reactionTimeout = null;
+    let sessionTrials = [];
+
+    function handleReactionBoxClick() {
+      const box = document.getElementById("reactionBox");
+      const mainText = document.getElementById("reactionMainText");
+      const subText = document.getElementById("reactionSubText");
+
+      if (reactionState === "idle" || reactionState === "result") {
+        // Start waiting
+        reactionState = "waiting";
+        box.className = "reaction-target-box waiting";
+        mainText.textContent = "Wait for GREEN...";
+        subText.textContent = "Do not click early.";
+
+        const delay = 1500 + Math.random() * 2500;
+        reactionTimeout = setTimeout(() => {
+          if (reactionState === "waiting") {
+            reactionState = "ready";
+            box.className = "reaction-target-box ready";
+            mainText.textContent = "CLICK NOW!";
+            subText.textContent = "";
+            reactionStartTime = performance.now();
+          }
+        }, delay);
+
+      } else if (reactionState === "waiting") {
+        // Clicked too early
+        clearTimeout(reactionTimeout);
+        reactionState = "idle";
+        box.className = "reaction-target-box idle";
+        mainText.textContent = "Too early! Click to retry";
+        subText.textContent = "Wait until the screen turns bright green.";
+
+      } else if (reactionState === "ready") {
+        // Successful reaction click
+        const latency = Math.round(performance.now() - reactionStartTime);
+        reactionState = "result";
+        box.className = "reaction-target-box idle";
+        mainText.textContent = `${latency} ms`;
+        subText.textContent = "Click to run next round";
+
+        appState.recovery.reactionHistory.push(latency);
+        if (appState.recovery.reactionHistory.length > 5) {
+          appState.recovery.reactionHistory.shift();
+        }
+        saveAppState();
+        const log = document.getElementById("reactionRoundsLog");
+        if (log) {
+          log.innerHTML = `Recent: ${appState.recovery.reactionHistory.map(ms => `<span>${ms}ms</span>`).join(" · ")}`;
+        }
+      }
+    }
+
+    function logWater() {
+      appState.recovery.waterLiters = Number((appState.recovery.waterLiters + 0.5).toFixed(1));
+      saveAppState();
+      renderCurrentView();
+      showToast(`Logged 0.5L Water (${appState.recovery.waterLiters}L total)`);
+    }
+
+    function logProtein() {
+      appState.recovery.proteinGrams += 25;
+      saveAppState();
+      renderCurrentView();
+      showToast(`Logged 25g Protein (${appState.recovery.proteinGrams}g total)`);
+    }
+
+    function renderReviewView() {
+      const rev = appState.reviewNotes;
+      return `
+        <div style="margin-bottom:20px;">
+          <h2 style="font-size:20px; font-weight:700;">Weekly Retrospective & Evolution</h2>
+          <p style="color:var(--text-secondary); font-size:13px;">Extract insights, calibrate friction, and upgrade operating systems for next cycle.</p>
+        </div>
+
+        <div class="execution-grid">
+          <div class="section-card">
+            <span class="section-title">Execution Reliability</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--surface-elevated); border-radius:var(--radius-sm);">
+              <div>
+                <div style="font-size:11px; color:var(--text-muted);">Actions Completed</div>
+                <div style="font-size:18px; font-weight:700;">14 / 16 (87.5%)</div>
+              </div>
+              <div>
+                <div style="font-size:11px; color:var(--text-muted);">System Consistency</div>
+                <div style="font-size:18px; font-weight:700; color:var(--accent-systems);">4 / 5 Healthy</div>
+              </div>
+              <div>
+                <div style="font-size:11px; color:var(--text-muted);">Avg Sleep</div>
+                <div style="font-size:18px; font-weight:700; color:var(--accent-recovery);">7h 12m</div>
+              </div>
+            </div>
+
+            <!-- Reflection Questions -->
+            <div style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
+              <div>
+                <div class="detail-label">What worked?</div>
+                <textarea class="quick-input-box" style="width:100%; height:50px; resize:none;" id="revWorked" onchange="saveReview()">${escapeHtml(rev.worked)}</textarea>
+              </div>
+
+              <div>
+                <div class="detail-label">What didn't work?</div>
+                <textarea class="quick-input-box" style="width:100%; height:50px; resize:none;" id="revDidntWork" onchange="saveReview()">${escapeHtml(rev.didntWork)}</textarea>
+              </div>
+
+              <div>
+                <div class="detail-label">What did I learn?</div>
+                <textarea class="quick-input-box" style="width:100%; height:50px; resize:none;" id="revLearned" onchange="saveReview()">${escapeHtml(rev.learned)}</textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <span class="section-title">System Adjustments & Directives</span>
+
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div>
+                <div class="detail-label">What should I STOP?</div>
+                <input class="quick-input-box" style="width:100%;" id="revStop" value="${escapeHtml(rev.stop)}" onchange="saveReview()">
+              </div>
+
+              <div>
+                <div class="detail-label">What should I START?</div>
+                <input class="quick-input-box" style="width:100%;" id="revStart" value="${escapeHtml(rev.start)}" onchange="saveReview()">
+              </div>
+
+              <div>
+                <div class="detail-label">Single Most Important Focus Next Week</div>
+                <input class="quick-input-box" style="width:100%; font-weight:600; color:var(--accent-today);" id="revNextWeekFocus" value="${escapeHtml(rev.nextWeekFocus)}" onchange="saveReview()">
+              </div>
+
+              <button class="btn-icon-subtle" onclick="applySystemChanges()" style="margin-top:8px; background:var(--accent-review); color:#ffffff; font-weight:600; padding:10px;">
+                Apply System Changes to Future Templates
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveReview() {
+      appState.reviewNotes = {
+        worked: document.getElementById("revWorked").value,
+        didntWork: document.getElementById("revDidntWork").value,
+        learned: document.getElementById("revLearned").value,
+        stop: document.getElementById("revStop").value,
+        start: document.getElementById("revStart").value,
+        nextWeekFocus: document.getElementById("revNextWeekFocus").value
+      };
+      saveAppState();
+      showToast("Weekly review notes updated");
+    }
+
+    function applySystemChanges() {
+      saveReview();
+      showToast("✓ System modifications applied to active loops!");
+    }
+
+    function renderSettingsView() {
+      return `
+        <div style="margin-bottom:20px;">
+          <h2 style="font-size:20px; font-weight:700;">System Settings & Data Control</h2>
+          <p style="color:var(--text-secondary); font-size:13px;">Full data sovereignty. Local persistence backed by IndexedDB and instant JSON import/export.</p>
+        </div>
+
+        <div class="section-card" style="max-width:580px;">
+          <span class="section-title">Data Backup & Migration</span>
+          <p style="font-size:12px; color:var(--text-secondary);">
+            Export complete Life OS schemas (Goals, Systems, Actions, Resources, and Recovery logs) to a clean JSON file.
+          </p>
+
+          <div style="display:flex; gap:12px; margin-top:8px;">
+            <button class="btn-icon-subtle" onclick="exportDataJSON()" style="background:var(--surface-elevated); border:1px solid var(--border); font-weight:600;">
+              Export JSON Backup
+            </button>
+
+            <label class="btn-icon-subtle" style="background:var(--surface-elevated); border:1px solid var(--border); font-weight:600; cursor:pointer;">
+              Import JSON
+              <input type="file" id="jsonImportInput" accept=".json" style="display:none;" onchange="importDataJSON(event)">
+            </label>
+          </div>
+
+          <div class="sidebar-divider" style="margin:16px 0;"></div>
+
+          <span class="section-title" style="color:var(--danger);">Danger Zone</span>
+          <p style="font-size:12px; color:var(--text-secondary);">
+            Reset all state to initial demo seed. Will erase local unsaved progress.
+          </p>
+          <button class="btn-icon-subtle" onclick="resetToDemoData()" style="color:var(--danger); border:1px solid rgba(239, 68, 68, 0.3); align-self:flex-start; margin-top:4px;">
+            Reset to Demo Seed State
+          </button>
+        </div>
+      `;
+    }
+
+    function exportDataJSON() {
+      const payload = {
+        schemaVersion: 1,
+        appVersion: "1.0.0",
+        exportedAt: new Date().toISOString(),
+        data: appState
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `life_os_backup_${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("Data backup exported successfully");
+    }
+
+    function importDataJSON(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          if (parsed.data) {
+            appState = parsed.data;
+            saveAppState();
+            renderCurrentView();
+            updateCockpitBar();
+            showToast("Backup restored successfully!");
+          }
+        } catch {
+          showToast("Failed to parse JSON file.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetToDemoData() {
+      appState = JSON.parse(JSON.stringify(defaultState));
+      saveAppState();
+      renderCurrentView();
+      updateCockpitBar();
+      showToast("Reset to factory demo state.");
+    }
+
+    function switchView(viewName) {
+      appState.activeView = viewName;
+      // Update sidebar
+      document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
+        btn.classList.toggle("active", btn.getAttribute("data-view") === viewName);
+      });
+      renderCurrentView();
+      closeDrawer();
+    }
+
+    function renderCurrentView() {
+      const container = document.getElementById("mainContentScroll");
+      switch (appState.activeView) {
+        case "today": container.innerHTML = renderTodayView(); break;
+        case "goals": container.innerHTML = renderGoalsView(); break;
+        case "systems": container.innerHTML = renderSystemsView(); break;
+        case "knowledge": container.innerHTML = renderKnowledgeView(); break;
+        case "recovery": container.innerHTML = renderRecoveryView(); break;
+        case "review": container.innerHTML = renderReviewView(); break;
+        case "settings": container.innerHTML = renderSettingsView(); break;
+        default: container.innerHTML = renderTodayView();
+      }
+      updateCockpitBar();
+    }
+
+    function openResourceDetail(resId) {
+      const res = appState.resources.find(r => r.id === resId);
+      if (!res) return;
+
+      const titleEl = document.getElementById("drawerHeaderTitle");
+      const bodyEl = document.getElementById("drawerBody");
+      const footerEl = document.getElementById("drawerFooter");
+
+      titleEl.textContent = res.title;
+
+      const linkedGoals = appState.goals.filter(g => res.goalIds && res.goalIds.includes(g.id));
+      const linkedSystems = appState.systems.filter(s => res.systemIds && res.systemIds.includes(s.id));
+
+      bodyEl.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="resource-type-tag">◈ ${res.type}</span>
+          ${res.url ? `<a href="${res.url}" target="_blank" class="onenote-bridge-btn" style="padding:4px 8px; font-size:11px;">Open Source ${ICONS.external}</a>` : ''}
+        </div>
+
+        <!-- OneNote Knowledge Bridge Button -->
+        <div class="detail-section">
+          <div class="detail-label">OneNote Knowledge Vault</div>
+          ${res.oneNoteUrl ? `
+            <a href="${res.oneNoteUrl}" target="_blank" class="onenote-bridge-btn">
+              ${ICONS.onenote} Open in OneNote
+            </a>
+          ` : `
+            <button class="btn-icon-subtle" onclick="promptOneNoteLink('${res.id}')">
+              + Link OneNote Page
+            </button>
+          `}
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-label">Personal Note</div>
+          <div class="detail-content-box">${escapeHtml(res.personalNote || 'No personal notes recorded.')}</div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-label">What Did I Learn? (Insight)</div>
+          <div class="detail-content-box" style="border-color:var(--accent-knowledge);">${escapeHtml(res.insight || 'No insight extracted yet.')}</div>
+        </div>
+
+        ${res.systemChange ? `
+          <div class="detail-section">
+            <div class="detail-label">System Evolution Triggered</div>
+            <div class="detail-content-box" style="border-color:var(--accent-systems); color:var(--accent-systems); font-weight:500;">
+              ${escapeHtml(res.systemChange)}
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="detail-section">
+          <div class="detail-label">Connected Goal</div>
+          <div style="font-size:13px; color:var(--text-primary);">
+            ${linkedGoals.map(g => `• ${escapeHtml(g.name)}`).join("<br>") || 'None linked'}
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-label">Connected System</div>
+          <div style="font-size:13px; color:var(--text-primary);">
+            ${linkedSystems.map(s => `• ${escapeHtml(s.name)}`).join("<br>") || 'None linked'}
+          </div>
+        </div>
+      `;
+
+      footerEl.innerHTML = `
+        <button class="btn-focus-start" style="flex:1;" onclick="createActionFromResource('${res.id}')">
+          + Create Action
+        </button>
+        <button class="btn-outline-done" onclick="promptInsightEvolution('${res.id}')">
+          Extract Insight
+        </button>
+      `;
+
+      openDrawer();
+    }
+
+    function openGoalDetail(goalId) {
+      const goal = appState.goals.find(g => g.id === goalId);
+      if (!goal) return;
+
+      const titleEl = document.getElementById("drawerHeaderTitle");
+      const bodyEl = document.getElementById("drawerBody");
+      const footerEl = document.getElementById("drawerFooter");
+
+      titleEl.textContent = goal.name;
+
+      const pct = Math.min(100, Math.round((goal.currentValue / goal.targetValue) * 100));
+      const systems = appState.systems.filter(s => goal.systemIds.includes(s.id));
+      const resources = appState.resources.filter(r => r.goalIds && r.goalIds.includes(goal.id));
+
+      bodyEl.innerHTML = `
+        <!-- LEVEL 1: What Matters Now -->
+        <div class="detail-section">
+          <div class="detail-label">Progress Velocity</div>
+          <div class="progress-bar-container">
+            <div class="progress-labels">
+              <span>${goal.currentValue} / ${goal.targetValue} ${goal.unit}</span>
+              <span>${pct}%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" style="width:${pct}%;"></div>
+            </div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-top:4px;">
+            <span>Deadline: ${goal.deadline}</span>
+            <span>Dimension: ${goal.dimension}</span>
+          </div>
+        </div>
+
+        <!-- LEVEL 2: Why & Next Action -->
+        <div class="detail-section">
+          <div class="detail-label">Operating Why</div>
+          <div class="detail-content-box">${escapeHtml(goal.why)}</div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-label">Next Action</div>
+          <div class="detail-content-box" style="border-color:var(--accent-goals); font-weight:600;">
+            ${escapeHtml(goal.nextAction || 'None defined')}
+          </div>
+        </div>
+
+        <!-- Milestones (Editable checkmarks) -->
+        <div class="detail-section">
+          <div class="detail-label">Milestones</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            ${goal.milestones.map((m, idx) => `
+              <div style="display:flex; align-items:center; gap:8px; font-size:13px;">
+                <button class="custom-check ${m.done ? 'checked' : ''}" onclick="toggleMilestone('${goal.id}', ${idx})">
+                  ${m.done ? ICONS.check : ''}
+                </button>
+                <span style="${m.done ? 'opacity:0.5; text-decoration:line-through;' : ''}">${escapeHtml(m.label)}</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+
+        <!-- LEVEL 3: Supporting Systems & Lightweight Resource Vault -->
+        <div class="detail-section">
+          <div class="detail-label">Linked Systems</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            ${systems.map(s => `<span class="dim-tag" style="background:#27272a; font-size:11px;">${escapeHtml(s.name)}</span>`).join("") || '<span style="color:var(--text-muted); font-size:12px;">No systems connected.</span>'}
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-label">Resource Vault (${resources.length})</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            ${resources.map(r => `
+              <div style="padding:8px; background:var(--surface-elevated); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer;" onclick="openResourceDetail('${r.id}')">
+                <div style="font-size:11px; color:var(--accent-knowledge); font-weight:700;">◈ ${r.type.toUpperCase()}</div>
+                <div style="font-size:12px; color:var(--text-primary); font-weight:500;">${escapeHtml(r.title)}</div>
+              </div>
+            `).join("") || '<div style="font-size:12px; color:var(--text-muted);">No attached resources.</div>'}
+          </div>
+        </div>
+
+        <!-- LEVEL 4: Deep Knowledge Handoff -->
+        <div class="detail-section">
+          <div class="detail-label">Deep Knowledge Archive</div>
+          ${goal.oneNoteUrl ? `
+            <a href="${goal.oneNoteUrl}" target="_blank" class="onenote-bridge-btn">
+              ${ICONS.onenote} Open Goal Vault in OneNote
+            </a>
+          ` : `
+            <button class="btn-icon-subtle" onclick="promptGoalOneNote('${goal.id}')">
+              + Link OneNote Notebook Page
+            </button>
+          `}
+        </div>
+      `;
+
+      footerEl.innerHTML = `
+        <button class="btn-icon-subtle" style="flex:1;" onclick="promptUpdateProgress('${goal.id}')">
+          Log Progress Value
+        </button>
+      `;
+
+      openDrawer();
+    }
+
+    function toggleMilestone(goalId, index) {
+      const goal = appState.goals.find(g => g.id === goalId);
+      if (!goal || !goal.milestones[index]) return;
+      goal.milestones[index].done = !goal.milestones[index].done;
+      saveAppState();
+      openGoalDetail(goalId);
+      renderCurrentView();
+      showToast("Milestone updated");
+    }
+
+    function promptUpdateProgress(goalId) {
+      const goal = appState.goals.find(g => g.id === goalId);
+      if (!goal) return;
+      const val = prompt(`Enter new progress value for ${goal.name} (Unit: ${goal.unit}):`, goal.currentValue);
+      if (val !== null && !isNaN(Number(val))) {
+        goal.currentValue = Number(val);
+        saveAppState();
+        openGoalDetail(goalId);
+        renderCurrentView();
+        showToast("Goal progress updated!");
+      }
+    }
+
+    function openSystemDetail(systemId) {
+      const system = appState.systems.find(s => s.id === systemId);
+      if (!system) return;
+
+      const titleEl = document.getElementById("drawerHeaderTitle");
+      const bodyEl = document.getElementById("drawerBody");
+      const footerEl = document.getElementById("drawerFooter");
+
+      titleEl.textContent = system.name;
+      const resources = appState.resources.filter(r => r.systemIds && r.systemIds.includes(system.id));
+
+      bodyEl.innerHTML = `
+        <div class="detail-section">
+          <div class="detail-label">System Health & Cadence</div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="health-pill ${system.health}">${system.health.replace('_', ' ')}</span>
+            <span style="font-family:var(--font-mono); font-size:12px;">${system.frequency}</span>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-label">Associated Resources</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            ${resources.map(r => `
+              <div style="padding:8px; background:var(--surface-elevated); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer;" onclick="openResourceDetail('${r.id}')">
+                <span style="font-size:11px; color:var(--accent-systems); font-weight:700;">◈ ${r.type.toUpperCase()}</span>
+                <div style="font-size:12px;">${escapeHtml(r.title)}</div>
+              </div>
+            `).join("") || '<div style="color:var(--text-muted); font-size:12px;">No resources connected yet.</div>'}
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-label">System Experiment</div>
+          ${system.experiment ? `
+            <div class="detail-content-box">
+              <strong>Hypothesis:</strong> ${escapeHtml(system.experiment.hypothesis)}<br>
+              <strong>Duration:</strong> ${escapeHtml(system.experiment.duration)}<br>
+              <strong>Result:</strong> ${escapeHtml(system.experiment.result)}<br>
+              <strong>Decision:</strong> <span style="color:var(--success); font-weight:700;">${escapeHtml(system.experiment.decision)}</span>
+            </div>
+          ` : `
+            <div style="font-size:12px; color:var(--text-muted);">No active experiment. Refine this system when friction is encountered.</div>
+          `}
+        </div>
+      `;
+
+      footerEl.innerHTML = `
+        <button class="btn-icon-subtle" style="flex:1;" onclick="toggleSystemHealth('${system.id}')">
+          Cycle Health Status
+        </button>
+      `;
+
+      openDrawer();
+    }
+
+    function toggleSystemHealth(systemId) {
+      const sys = appState.systems.find(s => s.id === systemId);
+      if (!sys) return;
+      const order = ["healthy", "at_risk", "lagging"];
+      const nextIdx = (order.indexOf(sys.health) + 1) % order.length;
+      sys.health = order[nextIdx];
+      saveAppState();
+      openSystemDetail(systemId);
+      renderCurrentView();
+      showToast(`System status updated to ${sys.health}`);
+    }
+
+    function openActionDetail(actId) {
+      const act = appState.actions.find(a => a.id === actId);
+      if (!act) return;
+
+      const titleEl = document.getElementById("drawerHeaderTitle");
+      const bodyEl = document.getElementById("drawerBody");
+      const footerEl = document.getElementById("drawerFooter");
+
+      titleEl.textContent = act.name;
+      const isDone = act.status === "done";
+
+      bodyEl.innerHTML = `
+        <div class="detail-section">
+          <div class="detail-label">Status & Priority</div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="health-pill ${isDone ? 'healthy' : 'at_risk'}">${act.status}</span>
+            <span class="dim-tag">${act.priority.toUpperCase()}</span>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-label">Estimated Allocation</div>
+          <div style="font-family:var(--font-mono); font-size:14px;">${act.estimatedMinutes || 15} minutes</div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-label">Life Dimension</div>
+          <div class="dim-tag" style="align-self:flex-start;">Dimension: ${act.dimension || 'P'}</div>
+        </div>
+      `;
+
+      footerEl.innerHTML = `
+        <button class="btn-focus-start" style="flex:1;" onclick="startFocusMode('${act.id}')">
+          Start Focus
+        </button>
+        <button class="btn-outline-done" onclick="toggleActionComplete('${act.id}')">
+          ${isDone ? 'Reopen Action' : 'Complete Action'}
+        </button>
+      `;
+
+      openDrawer();
+    }
+
+    function createActionFromResource(resId) {
+      const res = appState.resources.find(r => r.id === resId);
+      if (!res) return;
+
+      const newAction = {
+        id: "act_" + Date.now(),
+        name: `Action from: ${res.title}`,
+        status: "next",
+        priority: "next",
+        scheduledDate: "2026-09-24",
+        estimatedMinutes: 20,
+        goalId: res.goalIds[0] || "goal_half_marathon",
+        systemId: res.systemIds[0] || "sys_running",
+        dimension: "P",
+        completedAt: null
+      };
+
+      appState.actions.unshift(newAction);
+      saveAppState();
+      renderCurrentView();
+      closeDrawer();
+      showToast("✓ Action created explicitly from resource!");
+    }
+
+    function promptInsightEvolution(resId) {
+      const res = appState.resources.find(r => r.id === resId);
+      if (!res) return;
+
+      const insight = prompt("What did you learn? (Extract Key Insight):", res.insight || "");
+      if (insight !== null) {
+        res.insight = insight;
+        const change = prompt("Create System Change based on this insight (optional):", res.systemChange || "");
+        if (change !== null) res.systemChange = change;
+        saveAppState();
+        openResourceDetail(resId);
+        renderCurrentView();
+        showToast("Insight and system change stored");
+      }
+    }
+
+    function promptOneNoteLink(resId) {
+      const res = appState.resources.find(r => r.id === resId);
+      if (!res) return;
+      const url = prompt("Paste OneNote Page Link (onenote: or web link):", res.oneNoteUrl || "");
+      if (url !== null) {
+        res.oneNoteUrl = url;
+        saveAppState();
+        openResourceDetail(resId);
+        renderCurrentView();
+        showToast("OneNote link saved");
+      }
+    }
+
+    function promptGoalOneNote(goalId) {
+      const goal = appState.goals.find(g => g.id === goalId);
+      if (!goal) return;
+      const url = prompt("Paste OneNote Notebook/Section URL for this Goal:", goal.oneNoteUrl || "");
+      if (url !== null) {
+        goal.oneNoteUrl = url;
+        saveAppState();
+        openGoalDetail(goalId);
+        renderCurrentView();
+        showToast("Goal OneNote archive linked");
+      }
+    }
+
+    function openDrawer() {
+      document.getElementById("drawerOverlay").classList.add("open");
+      document.getElementById("detailDrawer").classList.add("open");
+    }
+
+    function closeDrawer() {
+      document.getElementById("drawerOverlay").classList.remove("open");
+      document.getElementById("detailDrawer").classList.remove("open");
+    }
+
+    function toggleActionComplete(actId) {
+      const act = appState.actions.find(a => a.id === actId);
+      if (!act) return;
+
+      const wasDone = act.status === "done";
+      act.status = wasDone ? "next" : "done";
+      act.completedAt = wasDone ? null : new Date().toISOString();
+
+      // If completing The ONE Thing, update goals, systems and prompt notification
+      if (!wasDone && act.id === appState.oneThingActionId) {
+        showToast("⚡ The ONE Thing completed! Execution metrics updated.");
+      } else {
+        showToast(wasDone ? "Action reopened" : "✓ Action marked complete");
+      }
+
+      saveAppState();
+      renderCurrentView();
+      updateCockpitBar();
+      if (document.getElementById("detailDrawer").classList.contains("open")) {
+        openActionDetail(actId);
+      }
+    }
+
+    function setAsOneThing(actId) {
+      appState.oneThingActionId = actId;
+      saveAppState();
+      renderCurrentView();
+      showToast("Set as primary ONE Thing!");
+    }
+
+    /* Focus Mode Overlay Controller */
+    let focusTimerInterval = null;
+    let focusSecondsRemaining = 25 * 60;
+    let focusActiveActionId = null;
+    let isFocusPaused = false;
+
+    function startFocusMode(actionId) {
+      const act = appState.actions.find(a => a.id === actionId);
+      if (!act) return;
+
+      focusActiveActionId = actionId;
+      focusSecondsRemaining = (act.estimatedMinutes || 25) * 60;
+      isFocusPaused = false;
+
+      document.getElementById("focusActionTitle").textContent = act.name;
+      document.getElementById("focusPauseBtn").textContent = "Pause";
+      document.getElementById("focusOverlay").classList.add("active");
+      closeDrawer();
+
+      updateFocusDisplay();
+      if (focusTimerInterval) clearInterval(focusTimerInterval);
+      focusTimerInterval = setInterval(() => {
+        if (!isFocusPaused && focusSecondsRemaining > 0) {
+          focusSecondsRemaining--;
+          updateFocusDisplay();
+          if (focusSecondsRemaining <= 0) {
+            clearInterval(focusTimerInterval);
+            showToast("Focus block finished!");
+          }
+        }
+      }, 1000);
+    }
+
+    function updateFocusDisplay() {
+      const mins = Math.floor(focusSecondsRemaining / 60);
+      const secs = focusSecondsRemaining % 60;
+      document.getElementById("focusTimerDisplay").textContent = 
+        `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function pauseResumeFocus() {
+      isFocusPaused = !isFocusPaused;
+      document.getElementById("focusPauseBtn").textContent = isFocusPaused ? "Resume" : "Pause";
+    }
+
+    function completeInFocus() {
+      if (focusActiveActionId) {
+        toggleActionComplete(focusActiveActionId);
+      }
+      exitFocusMode();
+    }
+
+    function exitFocusMode() {
+      if (focusTimerInterval) clearInterval(focusTimerInterval);
+      document.getElementById("focusOverlay").classList.remove("active");
+    }
+
+    function handleQuickActionKey(e) {
+      if (e.key === "Enter") {
+        submitQuickAction();
+      }
+    }
+
+    function submitQuickAction() {
+      const input = document.getElementById("quickActionInput");
+      const text = input ? input.value.trim() : "";
+      if (!text) return;
+
+      // Extract optional #Dimension tag
+      let dim = "P";
+      const dimMatch = text.match(/#([FIMPSL])/i);
+      if (dimMatch) dim = dimMatch[1].toUpperCase();
+
+      const newAction = {
+        id: "act_" + Date.now(),
+        name: text.replace(/#([FIMPSL])/i, '').trim(),
+        status: "next",
+        priority: "now",
+        scheduledDate: "2026-09-24",
+        estimatedMinutes: 20,
+        goalId: "goal_half_marathon",
+        systemId: "sys_running",
+        dimension: dim,
+        completedAt: null
+      };
+
+      appState.actions.unshift(newAction);
+      saveAppState();
+      renderCurrentView();
+      input.value = "";
+      showToast("Action captured to queue");
+    }
+
+    let captureModalMode = "action";
+
+    function openCaptureModal(mode = "action") {
+      captureModalMode = mode;
+      document.getElementById("capTabAction").classList.toggle("active", mode === "action");
+      document.getElementById("capTabResource").classList.toggle("active", mode === "resource");
+
+      const body = document.getElementById("captureModalBody");
+      if (mode === "action") {
+        body.innerHTML = `
+          <div class="detail-label">Fast Action Name</div>
+          <input type="text" id="capActionName" class="quick-input-box" placeholder="e.g., 5 km tempo run #P" autofocus>
+
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1;">
+              <div class="detail-label">Priority</div>
+              <select id="capActionPriority" class="quick-input-box" style="width:100%;">
+                <option value="now">Now</option>
+                <option value="next" selected>Next</option>
+                <option value="later">Later</option>
+              </select>
+            </div>
+            <div style="flex:1;">
+              <div class="detail-label">Estimated Minutes</div>
+              <input type="number" id="capActionMinutes" class="quick-input-box" value="25" style="width:100%;">
+            </div>
+          </div>
+
+          <button class="btn-focus-start" style="margin-top:10px;" onclick="saveModalAction()">
+            + Save Action
+          </button>
+        `;
+      } else {
+        body.innerHTML = `
+          <div class="detail-label">Resource Title / Idea</div>
+          <input type="text" id="capResTitle" class="quick-input-box" placeholder="e.g., Running cadence breakdown video" autofocus>
+
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1;">
+              <div class="detail-label">Resource Type</div>
+              <select id="capResType" class="quick-input-box" style="width:100%;">
+                <option value="youtube">YouTube</option>
+                <option value="website">Website / Article</option>
+                <option value="screenshot">Screenshot / Image</option>
+                <option value="pdf">PDF Document</option>
+                <option value="documentary">Movie / Documentary</option>
+                <option value="book">Book</option>
+                <option value="podcast">Podcast</option>
+                <option value="text">Plain Text</option>
+              </select>
+            </div>
+            <div style="flex:1;">
+              <div class="detail-label">Source URL (Optional)</div>
+              <input type="url" id="capResUrl" class="quick-input-box" placeholder="https://..." style="width:100%;">
+            </div>
+          </div>
+
+          <div class="detail-label">Personal Quick Note</div>
+          <textarea id="capResNote" class="quick-input-box" style="height:55px; resize:none;" placeholder="Quick observation or why this was saved..."></textarea>
+
+          <button class="btn-focus-start" style="margin-top:10px;" onclick="saveModalResource()">
+            ✓ Save to Resource Inbox
+          </button>
+        `;
+      }
+
+      document.getElementById("captureModal").classList.add("open");
+    }
+
+    function saveModalAction() {
+      const name = document.getElementById("capActionName").value.trim();
+      if (!name) return;
+
+      const priority = document.getElementById("capActionPriority").value;
+      const minutes = parseInt(document.getElementById("capActionMinutes").value) || 20;
+
+      appState.actions.unshift({
+        id: "act_" + Date.now(),
+        name,
+        status: "next",
+        priority,
+        scheduledDate: "2026-09-24",
+        estimatedMinutes: minutes,
+        goalId: "goal_half_marathon",
+        systemId: "sys_running",
+        dimension: "P",
+        completedAt: null
+      });
+
+      saveAppState();
+      renderCurrentView();
+      closeCaptureModal();
+      showToast("Action created successfully");
+    }
+
+    function saveModalResource() {
+      const title = document.getElementById("capResTitle").value.trim();
+      if (!title) return;
+
+      const type = document.getElementById("capResType").value;
+      const url = document.getElementById("capResUrl").value.trim();
+      const note = document.getElementById("capResNote").value.trim();
+
+      appState.resources.unshift({
+        id: "res_" + Date.now(),
+        title,
+        type,
+        url,
+        thumbnailUrl: "",
+        sourceName: type.toUpperCase(),
+        capturedAt: new Date().toISOString().split("T")[0],
+        goalIds: ["goal_half_marathon"],
+        systemIds: ["sys_running"],
+        noteIds: [],
+        oneNoteUrl: "",
+        personalNote: note,
+        insight: "",
+        systemChange: "",
+        status: "unreviewed",
+        tags: ["Inspiration"]
+      });
+
+      saveAppState();
+      renderCurrentView();
+      closeCaptureModal();
+      showToast("✓ Saved to Resource Inbox");
+    }
+
+    function closeCaptureModal() {
+      document.getElementById("captureModal").classList.remove("open");
+    }
+
+    function openGlobalSearch() {
+      const modal = document.getElementById("searchModal");
+      modal.classList.add("open");
+      const input = document.getElementById("globalSearchInput");
+      input.value = "";
+      input.focus();
+      renderSearchResults("");
+    }
+
+    function closeGlobalSearch() {
+      document.getElementById("searchModal").classList.remove("open");
+    }
+
+    function renderSearchResults(query) {
+      const list = document.getElementById("searchResultsList");
+      const q = query.toLowerCase().trim();
+
+      const results = [];
+      // Goals
+      appState.goals.forEach(g => {
+        if (!q || g.name.toLowerCase().includes(q)) {
+          results.push({ type: "GOAL", title: g.name, id: g.id, action: () => openGoalDetail(g.id) });
+        }
+      });
+      // Systems
+      appState.systems.forEach(s => {
+        if (!q || s.name.toLowerCase().includes(q)) {
+          results.push({ type: "SYSTEM", title: s.name, id: s.id, action: () => openSystemDetail(s.id) });
+        }
+      });
+      // Actions
+      appState.actions.forEach(a => {
+        if (!q || a.name.toLowerCase().includes(q)) {
+          results.push({ type: "ACTION", title: a.name, id: a.id, action: () => openActionDetail(a.id) });
+        }
+      });
+      // Resources
+      appState.resources.forEach(r => {
+        if (!q || r.title.toLowerCase().includes(q)) {
+          results.push({ type: "RESOURCE", title: r.title, id: r.id, action: () => openResourceDetail(r.id) });
+        }
+      });
+
+      if (results.length === 0) {
+        list.innerHTML = `<div style="padding:16px; color:var(--text-muted); text-align:center;">No matching items found.</div>`;
+        return;
+      }
+
+      list.innerHTML = results.slice(0, 15).map(item => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 12px; background:var(--surface-elevated); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer;" onclick="executeSearchResult('${item.id}', '${item.type}')">
+          <span style="font-size:13px; font-weight:500;">${escapeHtml(item.title)}</span>
+          <span class="dim-tag">${item.type}</span>
+        </div>
+      `).join("");
+    }
+
+    function executeSearchResult(id, type) {
+      closeGlobalSearch();
+      if (type === "GOAL") openGoalDetail(id);
+      else if (type === "SYSTEM") openSystemDetail(id);
+      else if (type === "ACTION") openActionDetail(id);
+      else if (type === "RESOURCE") openResourceDetail(id);
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("collapsed");
+      appState.sidebarCollapsed = sidebar.classList.contains("collapsed");
+      saveAppState();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatMins(totalMins) {
+      const h = Math.floor(totalMins / 60);
+      const m = totalMins % 60;
+      if (h === 0) return `${m}m`;
+      return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
+
+    function setupEventListeners() {
+      // Sidebar Collapse
+      document.getElementById("sidebarCollapseBtn").addEventListener("click", toggleSidebar);
+
+      // Navigation clicks
+      document.querySelectorAll(".nav-item[data-view]").forEach(el => {
+        el.addEventListener("click", () => switchView(el.getAttribute("data-view")));
+      });
+
+      // Capture Triggers
+      document.getElementById("sidebarCaptureBtn").addEventListener("click", () => openCaptureModal("resource"));
+      document.getElementById("topQuickCaptureBtn").addEventListener("click", () => openCaptureModal("action"));
+      document.getElementById("mobCaptureBtn").addEventListener("click", () => openCaptureModal("action"));
+
+      // Capture Tabs
+      document.getElementById("capTabAction").addEventListener("click", () => openCaptureModal("action"));
+      document.getElementById("capTabResource").addEventListener("click", () => openCaptureModal("resource"));
+      document.getElementById("captureModalClose").addEventListener("click", closeCaptureModal);
+
+      // Search Modal
+      document.getElementById("globalSearchBtn").addEventListener("click", openGlobalSearch);
+      document.getElementById("globalSearchInput").addEventListener("input", (e) => renderSearchResults(e.target.value));
+
+      // Drawer Close
+      document.getElementById("drawerCloseBtn").addEventListener("click", closeDrawer);
+      document.getElementById("drawerOverlay").addEventListener("click", closeDrawer);
+
+      // Focus Mode Controls
+      document.getElementById("focusPauseBtn").addEventListener("click", pauseResumeFocus);
+      document.getElementById("focusCompleteBtn").addEventListener("click", completeInFocus);
+      document.getElementById("focusExitBtn").addEventListener("click", exitFocusMode);
+
+      // Keyboard shortcuts: Ctrl/Cmd + K, Escape
+      window.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+          e.preventDefault();
+          openGlobalSearch();
+        } else if (e.key === "Escape") {
+          closeGlobalSearch();
+          closeCaptureModal();
+          closeDrawer();
+        }
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      injectIcons();
+      await initDB();
+      const persisted = await loadStoredState();
+      if (persisted) {
+        appState = persisted;
+      }
+      if (appState.sidebarCollapsed) {
+        document.getElementById("sidebar").classList.add("collapsed");
+      }
+      setupEventListeners();
+      renderCurrentView();
+      updateCockpitBar();
+
+      // Refresh top bar time display periodically
+      setInterval(updateCockpitBar, 60000);
+    });
+  </script>
+</body>
+</html>
